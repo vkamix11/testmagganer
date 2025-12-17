@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #0a1929;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .app-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: #1a2332;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #2d3748;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #0084ff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .setup-screen {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .setup-card {
+            background: #1a2332;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 480px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        
+        .setup-title {
+            color: #fff;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+        
+        .input-wrapper {
+            margin-bottom: 24px;
+        }
+        
+        .input-wrapper input {
+            width: 100%;
+            padding: 16px;
+            background: #0a1929;
+            border: 2px solid #2d3748;
+            border-radius: 12px;
+            font-size: 16px;
+            color: #fff;
+            transition: all 0.2s;
+        }
+        
+        .input-wrapper input:focus {
+            outline: none;
+            border-color: #0084ff;
+            background: #0f1e2e;
+        }
+        
+        .input-wrapper input::placeholder {
+            color: #6b7280;
+        }
+        
+        .button-row {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: #0084ff;
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: #0073e6;
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: #2d3748;
+            color: white;
+        }
+        
+        .btn-secondary:hover:not(:disabled) {
+            background: #374151;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .call-screen {
+            flex: 1;
+            display: none;
+            position: relative;
+            background: #000;
+        }
+        
+        .call-screen.active {
+            display: block;
+        }
+        
+        .video-main {
+            position: absolute;
+            inset: 0;
+            background: #000;
+        }
+        
+        .video-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background: #000;
+            cursor: pointer;
+        }
+        
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .video-label {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 5;
+        }
+        
+        .video-pip {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 240px;
+            height: 180px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            border: 2px solid #2d3748;
+            z-index: 10;
+            cursor: pointer;
+        }
+        
+        .controls-bar {
+            position: absolute;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            z-index: 20;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            padding: 16px 24px;
+            border-radius: 48px;
+        }
+        
+        .control-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.2s;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+        
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.05);
+        }
+        
+        .control-btn.active {
+            background: rgba(239, 68, 68, 0.9);
+        }
+        
+        .control-btn.end-call {
+            background: #ef4444;
+            width: 64px;
+            height: 64px;
+        }
+        
+        .control-btn.end-call:hover {
+            background: #dc2626;
+        }
+
+        .control-btn.settings {
+            background: rgba(100, 116, 139, 0.9);
+        }
+
+        .control-btn.settings:hover {
+            background: rgba(71, 85, 105, 0.9);
+        }
+
+        .settings-modal {
+            position: absolute;
+            bottom: 200px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a2332;
+            border-radius: 16px;
+            padding: 24px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            z-index: 100;
+            display: none;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .settings-modal.show {
+            display: block;
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .settings-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .settings-close {
+            background: none;
+            border: none;
+            color: #9ca3af;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .settings-close:hover {
+            color: white;
+        }
+
+        .settings-group {
+            margin-bottom: 20px;
+        }
+
+        .settings-label {
+            display: block;
+            color: #9ca3af;
+            font-size: 14px;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .settings-select {
+            width: 100%;
+            padding: 12px;
+            background: #0a1929;
+            border: 2px solid #2d3748;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .settings-select:focus {
+            outline: none;
+            border-color: #0084ff;
+        }
+
+        .settings-select option {
+            background: #1a2332;
+            color: white;
+        }
+
+        .settings-info {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        .settings-divider {
+            height: 1px;
+            background: #2d3748;
+            margin: 20px 0;
+        }
+        
+        .status-bar {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 14px;
+            z-index: 15;
+            display: none;
+        }
+        
+        .status-bar.show {
+            display: block;
+        }
+        
+        .status-bar.connecting {
+            background: rgba(251, 191, 36, 0.9);
+            color: #000;
+        }
+        
+        .status-bar.connected {
+            background: rgba(34, 197, 94, 0.9);
+        }
+
+        .camera-off-overlay {
+            position: absolute;
+            inset: 0;
+            background: #1a1a1a;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 3;
+        }
+
+        .camera-off-overlay.show {
+            display: flex;
+        }
+
+        .camera-off-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .camera-off-text {
+            font-size: 18px;
+            margin-bottom: 8px;
+            opacity: 0.8;
+        }
+
+        .camera-off-subtext {
+            font-size: 14px;
+            opacity: 0.5;
+        }
+
+        .request-camera-btn {
+            margin-top: 20px;
+            padding: 12px 24px;
+            background: #0084ff;
+            border: none;
+            border-radius: 24px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .request-camera-btn:hover:not(:disabled) {
+            background: #0073e6;
+            transform: scale(1.05);
+        }
+
+        .request-camera-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .camera-request-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #1a2332;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            z-index: 100;
+            display: none;
+        }
+
+        .camera-request-modal.show {
+            display: block;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .modal-text {
+            font-size: 16px;
+            color: #9ca3af;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .modal-btn-primary {
+            background: #0084ff;
+            color: white;
+        }
+
+        .modal-btn-primary:hover {
+            background: #0073e6;
+        }
+
+        .modal-btn-secondary {
+            background: #2d3748;
+            color: white;
+        }
+
+        .modal-btn-secondary:hover {
+            background: #374151;
+        }
+        
+        @media (max-width: 768px) {
+            .setup-card {
+                padding: 32px 24px;
+            }
+            
+            .button-row {
+                flex-direction: column;
+            }
+            
+            .video-pip {
+                width: 120px;
+                height: 90px;
+                top: 16px;
+                right: 16px;
+            }
+            
+            .controls-bar {
+                bottom: 100px;
+                padding: 12px 16px;
+                gap: 12px;
+            }
+            
+            .control-btn {
+                width: 48px;
+                height: 48px;
+                font-size: 18px;
+            }
+            
+            .control-btn.end-call {
+                width: 56px;
+                height: 56px;
+            }
+
+            .camera-off-icon {
+                font-size: 48px;
+            }
+
+            .camera-off-text {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <div class="logo">
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                    <circle cx="14" cy="14" r="14" fill="currentColor"/>
+                    <path d="M8 14L12 18L20 10" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                Video Chat
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="setup-screen" id="setupScreen">
+                <div class="setup-card">
+                    <h1 class="setup-title">Rozpocznij rozmowę</h1>
+                    
+                    <div class="input-wrapper">
+                        <input 
+                            type="text" 
+                            id="roomId" 
+                            placeholder="Wpisz ID pokoju..."
+                            autocomplete="off"
+                        >
+                    </div>
+                    
+                    <div class="button-row">
+                        <button id="startBtn" class="btn btn-primary">
+                            <span>🎥</span>
+                            Utwórz pokój
+                        </button>
+                        <button id="joinBtn" class="btn btn-secondary">
+                            <span>🚪</span>
+                            Dołącz
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="call-screen" id="callScreen">
+                <div class="video-main" id="videoMain">
+                    <div class="video-container" id="remoteContainer">
+                        <video id="remoteVideo" autoplay playsinline></video>
+                        <div class="video-label" id="remoteLabel">Rozmówca</div>
+                        <div class="camera-off-overlay" id="remoteCameraOff">
+                            <div class="camera-off-icon">📷</div>
+                            <div class="camera-off-text">Kamera wyłączona</div>
+                            <div class="camera-off-subtext">Rozmówca wyłączył kamerę</div>
+                            <button class="request-camera-btn" id="requestCameraBtn">
+                                Poproś o włączenie kamery
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="video-pip" id="videoPip">
+                    <div class="video-container" id="localContainer">
+                        <video id="localVideo" autoplay muted playsinline></video>
+                        <div class="video-label">Ty</div>
+                        <div class="camera-off-overlay" id="localCameraOff">
+                            <div class="camera-off-icon">📷</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="status-bar" id="statusBar"></div>
+                
+                <div class="camera-request-modal" id="cameraRequestModal">
+                    <div class="modal-title">📹 Prośba o kamerę</div>
+                    <div class="modal-text">Rozmówca prosi Cię o włączenie kamery. Czy chcesz włączyć kamerę?</div>
+                    <div class="modal-buttons">
+                        <button class="modal-btn modal-btn-primary" id="acceptCameraBtn">Włącz kamerę</button>
+                        <button class="modal-btn modal-btn-secondary" id="declineCameraBtn">Nie teraz</button>
+                    </div>
+                </div>
+                
+                <div class="controls-bar">
+                    <button class="control-btn" id="toggleMicBtn" title="Wycisz mikrofon">
+                        🎤
+                    </button>
+                    <button class="control-btn" id="toggleCamBtn" title="Wyłącz kamerę">
+                        📹
+                    </button>
+                    <button class="control-btn" id="switchCameraBtn" title="Zmień kamerę">
+                        🔄
+                    </button>
+                    <button class="control-btn settings" id="settingsBtn" title="Ustawienia">
+                        ⚙️
+                    </button>
+                    <button class="control-btn end-call" id="endCallBtn" title="Zakończ">
+                        ✖️
+                    </button>
+                </div>
+
+                <div class="settings-modal" id="settingsModal">
+                    <div class="settings-header">
+                        <div class="settings-title">⚙️ Ustawienia rozmowy</div>
+                        <button class="settings-close" id="settingsCloseBtn">×</button>
+                    </div>
+
+                    <div class="settings-group">
+                        <label class="settings-label">Jakość wideo</label>
+                        <select class="settings-select" id="qualitySelect">
+                            <option value="auto">Auto (zalecane)</option>
+                            <option value="1080p">1080p (Full HD)</option>
+                            <option value="720p">720p (HD)</option>
+                            <option value="480p">480p (SD)</option>
+                            <option value="360p">360p (Low)</option>
+                        </select>
+                        <div class="settings-info">Wyższa jakość = więcej danych</div>
+                    </div>
+
+                    <div class="settings-group">
+                        <label class="settings-label">Klatki na sekundę (FPS)</label>
+                        <select class="settings-select" id="fpsSelect">
+                            <option value="auto">Auto (zalecane)</option>
+                            <option value="60">60 FPS (Płynne)</option>
+                            <option value="30">30 FPS (Standard)</option>
+                            <option value="15">15 FPS (Oszczędne)</option>
+                        </select>
+                        <div class="settings-info">Więcej FPS = płynniejszy obraz</div>
+                    </div>
+
+                    <div class="settings-group">
+                        <label class="settings-label">Bitrate wideo</label>
+                        <select class="settings-select" id="bitrateSelect">
+                            <option value="auto">Auto (zalecane)</option>
+                            <option value="2500">2.5 Mbps (Wysoki)</option>
+                            <option value="1500">1.5 Mbps (Średni)</option>
+                            <option value="800">800 Kbps (Niski)</option>
+    </select>
+                        <div class="settings-info">Wyższy bitrate = lepsza jakość</div>
+                    </div>
+
+                    <div class="settings-divider"></div>
+
+                    <div class="settings-group">
+                        <label class="settings-label">Informacje o połączeniu</label>
+                        <div style="background: #0a1929; padding: 12px; border-radius: 8px; font-size: 14px; color: #9ca3af;">
+                            <div id="connectionInfo">Łączenie...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+    <script>
+        let peer = null;
+        let currentCall = null;
+        let localStream = null;
+        let processedStream = null;
+        let audioContext = null;
+        let isMicEnabled = true;
+        let isCamEnabled = true;
+        let isLocalMain = false;
+        let dataConnection = null;
+        let lastCameraRequestTime = 0;
+        const CAMERA_REQUEST_COOLDOWN = 5 * 60 * 1000;
+
+        // Ustawienia jakości
+        let videoQuality = 'auto';
+        let videoFPS = 'auto';
+        let videoBitrate = 'auto';
+        let currentFacingMode = 'user'; // 'user' = przód, 'environment' = tył
+
+        const roomIdInput = document.getElementById('roomId');
+        const startBtn = document.getElementById('startBtn');
+        const joinBtn = document.getElementById('joinBtn');
+        const setupScreen = document.getElementById('setupScreen');
+        const callScreen = document.getElementById('callScreen');
+        const statusBar = document.getElementById('statusBar');
+        const localVideo = document.getElementById('localVideo');
+        const remoteVideo = document.getElementById('remoteVideo');
+        const videoPip = document.getElementById('videoPip');
+        const videoMain = document.getElementById('videoMain');
+        const localContainer = document.getElementById('localContainer');
+        const remoteContainer = document.getElementById('remoteContainer');
+        const toggleMicBtn = document.getElementById('toggleMicBtn');
+        const toggleCamBtn = document.getElementById('toggleCamBtn');
+        const endCallBtn = document.getElementById('endCallBtn');
+        const localCameraOff = document.getElementById('localCameraOff');
+        const remoteCameraOff = document.getElementById('remoteCameraOff');
+        const requestCameraBtn = document.getElementById('requestCameraBtn');
+        const cameraRequestModal = document.getElementById('cameraRequestModal');
+        const acceptCameraBtn = document.getElementById('acceptCameraBtn');
+        const declineCameraBtn = document.getElementById('declineCameraBtn');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        const settingsCloseBtn = document.getElementById('settingsCloseBtn');
+        const qualitySelect = document.getElementById('qualitySelect');
+        const fpsSelect = document.getElementById('fpsSelect');
+        const bitrateSelect = document.getElementById('bitrateSelect');
+        const connectionInfo = document.getElementById('connectionInfo');
+        const switchCameraBtn = document.getElementById('switchCameraBtn');
+
+        function showStatus(message, type = 'connecting') {
+            statusBar.textContent = message;
+            statusBar.className = `status-bar show ${type}`;
+            setTimeout(() => {
+                if (type !== 'connected') {
+                    statusBar.classList.remove('show');
+                }
+            }, 3000);
+        }
+
+        async function getMediaStream() {
+            try {
+                // Konfiguracja jakości wideo
+                let videoConstraints = { facingMode: currentFacingMode };
+                
+                if (videoQuality !== 'auto') {
+                    const qualitySettings = {
+                        '1080p': { width: 1920, height: 1080 },
+                        '720p': { width: 1280, height: 720 },
+                        '480p': { width: 854, height: 480 },
+                        '360p': { width: 640, height: 360 }
+                    };
+                    videoConstraints = {
+                        ...videoConstraints,
+                        width: { ideal: qualitySettings[videoQuality].width },
+                        height: { ideal: qualitySettings[videoQuality].height }
+                    };
+                }
+
+                if (videoFPS !== 'auto') {
+                    videoConstraints.frameRate = { ideal: parseInt(videoFPS) };
+                }
+
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: videoConstraints,
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+                
+                // Tworzymy dodatkowe przetwarzanie audio
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaStreamSource(stream);
+                
+                // Kompressor - redukuje głośne dźwięki i wzmacnia ciche
+                const compressor = audioContext.createDynamicsCompressor();
+                compressor.threshold.value = -50;
+                compressor.knee.value = 40;
+                compressor.ratio.value = 12;
+                compressor.attack.value = 0;
+                compressor.release.value = 0.25;
+                
+                // High-pass filter - usuwa niskie częstotliwości (szum)
+                const highPassFilter = audioContext.createBiquadFilter();
+                highPassFilter.type = 'highpass';
+                highPassFilter.frequency.value = 100;
+                
+                // Low-pass filter - usuwa wysokie częstotliwości (syk)
+                const lowPassFilter = audioContext.createBiquadFilter();
+                lowPassFilter.type = 'lowpass';
+                lowPassFilter.frequency.value = 8000;
+                
+                // Łączymy wszystko w łańcuch
+                source.connect(highPassFilter);
+                highPassFilter.connect(lowPassFilter);
+                lowPassFilter.connect(compressor);
+                
+                const destination = audioContext.createMediaStreamDestination();
+                compressor.connect(destination);
+                
+                // Tworzymy nowy stream z przetworzonymi audio i oryginalnym video
+                const videoTrack = stream.getVideoTracks()[0];
+                const processedAudioTrack = destination.stream.getAudioTracks()[0];
+                
+                processedStream = new MediaStream([videoTrack, processedAudioTrack]);
+                
+                return processedStream;
+            } catch (err) {
+                showStatus('Brak dostępu do kamery/mikrofonu', 'connecting');
+                throw err;
+            }
+        }
+
+        function createPeer(peerId = null) {
+            const config = {
+                host: '0.peerjs.com',
+                port: 443,
+                secure: true,
+                path: '/',
+                config: {
+                    iceServers: [
+                        // Serwery STUN (Google)
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' },
+                        { urls: 'stun:stun3.l.google.com:19302' },
+                        { urls: 'stun:stun4.l.google.com:19302' },
+                        // Publiczne serwery TURN (dla lepszej stabilności)
+                        {
+                            urls: 'turn:openrelay.metered.ca:80',
+                            username: 'openrelayproject',
+                            credential: 'openrelayproject'
+                        },
+                        {
+                            urls: 'turn:openrelay.metered.ca:443',
+                            username: 'openrelayproject',
+                            credential: 'openrelayproject'
+                        },
+                        {
+                            urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                            username: 'openrelayproject',
+                            credential: 'openrelayproject'
+                        }
+                    ],
+                    sdpSemantics: 'unified-plan'
+                },
+                debug: 2
+            };
+
+            if (peerId) {
+                return new Peer(peerId, config);
+            }
+
+            return new Peer(config);
+        }
+
+        function switchToCallScreen() {
+            setupScreen.style.display = 'none';
+            callScreen.classList.add('active');
+        }
+
+        function switchToSetupScreen() {
+            callScreen.classList.remove('active');
+            setupScreen.style.display = 'flex';
+        }
+
+        function swapVideos() {
+            isLocalMain = !isLocalMain;
+            
+            if (isLocalMain) {
+                videoMain.innerHTML = '';
+                videoMain.appendChild(localContainer);
+                videoPip.innerHTML = '';
+                videoPip.appendChild(remoteContainer);
+            } else {
+                videoMain.innerHTML = '';
+                videoMain.appendChild(remoteContainer);
+                videoPip.innerHTML = '';
+                videoPip.appendChild(localContainer);
+            }
+        }
+
+        localContainer.addEventListener('click', swapVideos);
+        remoteContainer.addEventListener('click', swapVideos);
+
+        function sendDataMessage(type, data) {
+            if (dataConnection && dataConnection.open) {
+                dataConnection.send({ type, data });
+            }
+        }
+
+        function updateCameraStatus() {
+            if (isCamEnabled) {
+                localCameraOff.classList.remove('show');
+            } else {
+                localCameraOff.classList.add('show');
+            }
+            sendDataMessage('camera-status', { enabled: isCamEnabled });
+        }
+
+        toggleMicBtn.addEventListener('click', () => {
+            isMicEnabled = !isMicEnabled;
+            
+            // Wyłączamy/włączamy zarówno oryginalny jak i przetworzony stream
+            if (localStream) {
+                localStream.getAudioTracks().forEach(track => {
+                    track.enabled = isMicEnabled;
+                });
+            }
+            if (processedStream) {
+                processedStream.getAudioTracks().forEach(track => {
+                    track.enabled = isMicEnabled;
+                });
+            }
+            
+            toggleMicBtn.classList.toggle('active', !isMicEnabled);
+            toggleMicBtn.textContent = isMicEnabled ? '🎤' : '🔇';
+        });
+
+        toggleCamBtn.addEventListener('click', () => {
+            isCamEnabled = !isCamEnabled;
+            
+            // Wyłączamy/włączamy zarówno oryginalny jak i przetworzony stream
+            if (localStream) {
+                localStream.getVideoTracks().forEach(track => {
+                    track.enabled = isCamEnabled;
+                });
+            }
+            if (processedStream) {
+                processedStream.getVideoTracks().forEach(track => {
+                    track.enabled = isCamEnabled;
+                });
+            }
+            
+            toggleCamBtn.classList.toggle('active', !isCamEnabled);
+            toggleCamBtn.textContent = isCamEnabled ? '📹' : '📷';
+            updateCameraStatus();
+        });
+
+        requestCameraBtn.addEventListener('click', () => {
+            const now = Date.now();
+            if (now - lastCameraRequestTime < CAMERA_REQUEST_COOLDOWN) {
+                const remainingTime = Math.ceil((CAMERA_REQUEST_COOLDOWN - (now - lastCameraRequestTime)) / 1000 / 60);
+                showStatus(`Poczekaj jeszcze ${remainingTime} min`, 'connecting');
+                return;
+            }
+            
+            lastCameraRequestTime = now;
+            sendDataMessage('camera-request', {});
+            showStatus('Wysłano prośbę o kamerę', 'connected');
+            requestCameraBtn.disabled = true;
+            
+            setTimeout(() => {
+                requestCameraBtn.disabled = false;
+            }, CAMERA_REQUEST_COOLDOWN);
+        });
+
+        acceptCameraBtn.addEventListener('click', () => {
+            cameraRequestModal.classList.remove('show');
+            if (!isCamEnabled) {
+                toggleCamBtn.click();
+            }
+        });
+
+        declineCameraBtn.addEventListener('click', () => {
+            cameraRequestModal.classList.remove('show');
+        });
+
+        settingsBtn.addEventListener('click', () => {
+            settingsModal.classList.toggle('show');
+            if (settingsModal.classList.contains('show')) {
+                updateConnectionInfo();
+            }
+        });
+
+        settingsCloseBtn.addEventListener('click', () => {
+            settingsModal.classList.remove('show');
+        });
+
+        qualitySelect.addEventListener('change', async (e) => {
+            videoQuality = e.target.value;
+            showStatus('Restartowanie kamery...', 'connecting');
+            
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+            if (processedStream) {
+                processedStream.getTracks().forEach(track => track.stop());
+            }
+            if (audioContext) {
+                audioContext.close();
+            }
+
+            localStream = await getMediaStream();
+            localVideo.srcObject = localStream;
+
+            if (currentCall) {
+                const videoTrack = processedStream.getVideoTracks()[0];
+                const sender = currentCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                if (sender) {
+                    sender.replaceTrack(videoTrack);
+                }
+            }
+
+            showStatus('Jakość zaktualizowana', 'connected');
+        });
+
+        fpsSelect.addEventListener('change', async (e) => {
+            videoFPS = e.target.value;
+            showStatus('Restartowanie kamery...', 'connecting');
+            
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+            if (processedStream) {
+                processedStream.getTracks().forEach(track => track.stop());
+            }
+            if (audioContext) {
+                audioContext.close();
+            }
+
+            localStream = await getMediaStream();
+            localVideo.srcObject = localStream;
+
+            if (currentCall) {
+                const videoTrack = processedStream.getVideoTracks()[0];
+                const sender = currentCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                if (sender) {
+                    sender.replaceTrack(videoTrack);
+                }
+            }
+
+            showStatus('FPS zaktualizowane', 'connected');
+        });
+
+        bitrateSelect.addEventListener('change', (e) => {
+            videoBitrate = e.target.value;
+            if (currentCall) {
+                applyBitrateLimit(currentCall);
+                showStatus('Bitrate zaktualizowany', 'connected');
+            }
+        });
+
+        switchCameraBtn.addEventListener('click', async () => {
+            if (!localStream) return;
+
+            try {
+                showStatus('Zmienianie kamery...', 'connecting');
+                
+                // Przełączamy tryb kamery
+                currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+                
+                // Zatrzymujemy stare streamy
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                }
+                if (processedStream) {
+                    processedStream.getTracks().forEach(track => track.stop());
+                }
+                if (audioContext) {
+                    audioContext.close();
+                }
+
+                // Tworzymy nowy stream z nową kamerą
+                localStream = await getMediaStream();
+                localVideo.srcObject = localStream;
+
+                // Jeśli jesteśmy w rozmowie, aktualizujemy track dla rozmówcy
+                if (currentCall && currentCall.peerConnection) {
+                    const videoTrack = processedStream.getVideoTracks()[0];
+                    const sender = currentCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                    if (sender) {
+                        await sender.replaceTrack(videoTrack);
+                    }
+                }
+
+                showStatus('Kamera zmieniona', 'connected');
+            } catch (err) {
+                console.error('Błąd zmiany kamery:', err);
+                showStatus('Nie udało się zmienić kamery', 'connecting');
+                // Wracamy do poprzedniej kamery
+                currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+            }
+        });
+
+        function setupDataConnection(conn) {
+            dataConnection = conn;
+            
+            conn.on('data', (data) => {
+                if (data.type === 'camera-status') {
+                    if (data.data.enabled) {
+                        remoteCameraOff.classList.remove('show');
+                    } else {
+                        remoteCameraOff.classList.add('show');
+                    }
+                } else if (data.type === 'camera-request') {
+                    cameraRequestModal.classList.add('show');
+                }
+            });
+
+            conn.on('open', () => {
+                updateCameraStatus();
+                updateConnectionInfo();
+            });
+        }
+
+        function updateConnectionInfo() {
+            if (currentCall && currentCall.peerConnection) {
+                currentCall.peerConnection.getStats().then(stats => {
+                    let info = [];
+                    stats.forEach(stat => {
+                        if (stat.type === 'candidate-pair' && stat.state === 'succeeded') {
+                            info.push(`Typ: ${stat.currentRoundTripTime ? 'Połączenie aktywne' : 'Łączenie...'}`);
+                            if (stat.currentRoundTripTime) {
+                                info.push(`Ping: ${Math.round(stat.currentRoundTripTime * 1000)}ms`);
+                            }
+                        }
+                    });
+                    if (info.length > 0) {
+                        connectionInfo.innerHTML = info.join('<br>');
+                    }
+                });
+            }
+        }
+
+        function applyBitrateLimit(call) {
+            if (videoBitrate === 'auto' || !call || !call.peerConnection) return;
+
+            const sender = call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+            if (!sender) return;
+
+            const parameters = sender.getParameters();
+            if (!parameters.encodings) parameters.encodings = [{}];
+            
+            parameters.encodings[0].maxBitrate = parseInt(videoBitrate) * 1000;
+            
+            sender.setParameters(parameters).catch(err => {
+                console.error('Błąd ustawiania bitrate:', err);
+            });
+        }
+
+        startBtn.addEventListener('click', async () => {
+            const roomId = roomIdInput.value.trim();
+            if (!roomId) {
+                roomIdInput.focus();
+                return;
+            }
+
+            try {
+                showStatus('Uruchamianie kamery...', 'connecting');
+                localStream = await getMediaStream();
+                localVideo.srcObject = localStream;
+                switchToCallScreen();
+
+                showStatus('Tworzenie pokoju...', 'connecting');
+                peer = createPeer(roomId);
+
+                peer.on('open', (id) => {
+                    showStatus('Oczekiwanie na drugą osobę...', 'connected');
+                    startBtn.disabled = true;
+                    joinBtn.disabled = true;
+                });
+
+                peer.on('connection', (conn) => {
+                    setupDataConnection(conn);
+                });
+
+                peer.on('call', (call) => {
+                    currentCall = call;
+                    call.answer(processedStream || localStream);
+                    
+                    call.on('stream', (remoteStream) => {
+                        remoteVideo.srcObject = remoteStream;
+                        showStatus('Połączono', 'connected');
+                        applyBitrateLimit(call);
+                        setInterval(() => updateConnectionInfo(), 2000);
+                    });
+
+                    call.on('close', () => {
+                        showStatus('Rozmówca rozłączył się', 'connecting');
+                        remoteVideo.srcObject = null;
+                    });
+                });
+
+                peer.on('error', (err) => {
+                    console.error('Peer error:', err);
+                    if (err.type === 'unavailable-id') {
+                        showStatus('To ID jest zajęte', 'connecting');
+                    } else {
+                        showStatus('Błąd połączenia', 'connecting');
+                    }
+                });
+
+                peer.on('disconnected', () => {
+                    showStatus('Rozłączono z serwerem...', 'connecting');
+                    setTimeout(() => {
+                        if (peer && !peer.destroyed) {
+                            peer.reconnect();
+                        }
+                    }, 1000);
+                });
+
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        joinBtn.addEventListener('click', async () => {
+            const roomId = roomIdInput.value.trim();
+            if (!roomId) {
+                roomIdInput.focus();
+                return;
+            }
+
+            try {
+                showStatus('Uruchamianie kamery...', 'connecting');
+                localStream = await getMediaStream();
+                localVideo.srcObject = localStream;
+                switchToCallScreen();
+
+                showStatus('Łączenie...', 'connecting');
+                peer = createPeer();
+
+                peer.on('open', (id) => {
+                    const conn = peer.connect(roomId);
+                    setupDataConnection(conn);
+
+                    setTimeout(() => {
+                        const call = peer.call(roomId, processedStream || localStream);
+                        
+                        if (!call) {
+                            showStatus('Pokój nie istnieje', 'connecting');
+                            return;
+                        }
+
+                        currentCall = call;
+
+                        call.on('stream', (remoteStream) => {
+                            remoteVideo.srcObject = remoteStream;
+                            showStatus('Połączono', 'connected');
+                            applyBitrateLimit(call);
+                            setInterval(() => updateConnectionInfo(), 2000);
+                        });
+
+                        call.on('close', () => {
+                            showStatus('Rozmowa zakończona', 'connecting');
+                            remoteVideo.srcObject = null;
+                        });
+
+                        call.on('error', (err) => {
+                            console.error('Call error:', err);
+                            showStatus('Błąd połączenia', 'connecting');
+                        });
+                    }, 1000);
+
+                    startBtn.disabled = true;
+                    joinBtn.disabled = true;
+                });
+
+                peer.on('connection', (conn) => {
+                    setupDataConnection(conn);
+                });
+
+                peer.on('error', (err) => {
+                    console.error('Peer error:', err);
+                    if (err.type === 'peer-unavailable') {
+                        showStatus('Nie znaleziono pokoju', 'connecting');
+                    } else {
+                        showStatus('Błąd połączenia', 'connecting');
+                    }
+                });
+
+                peer.on('disconnected', () => {
+                    showStatus('Rozłączono z serwerem...', 'connecting');
+                    setTimeout(() => {
+                        if (peer && !peer.destroyed) {
+                            peer.reconnect();
+                        }
+                    }, 1000);
+                });
+
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        endCallBtn.addEventListener('click', () => {
+            if (currentCall) {
+                currentCall.close();
+            }
+            if (dataConnection) {
+                dataConnection.close();
+            }
+            if (peer) {
+                peer.destroy();
+            }
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+            if (processedStream) {
+                processedStream.getTracks().forEach(track => track.stop());
+            }
+            if (audioContext) {
+                audioContext.close();
+            }
+            
+            localVideo.srcObject = null;
+            remoteVideo.srcObject = null;
+            
+            startBtn.disabled = false;
+            joinBtn.disabled = false;
+            
+            peer = null;
+            currentCall = null;
+            localStream = null;
+            processedStream = null;
+            audioContext = null;
+            dataConnection = null;
+            isMicEnabled = true;
+            isCamEnabled = true;
+            isLocalMain = false;
+            lastCameraRequestTime = 0;
+            
+            toggleMicBtn.classList.remove('active');
+            toggleCamBtn.classList.remove('active');
+            toggleMicBtn.textContent = '🎤';
+            toggleCamBtn.textContent = '📹';
+            
+            localCameraOff.classList.remove('show');
+            remoteCameraOff.classList.remove('show');
+            cameraRequestModal.classList.remove('show');
+            settingsModal.classList.remove('show');
+            requestCameraBtn.disabled = false;
+            
+            videoQuality = 'auto';
+            videoFPS = 'auto';
+            videoBitrate = 'auto';
+            currentFacingMode = 'user';
+            qualitySelect.value = 'auto';
+            fpsSelect.value = 'auto';
+            bitrateSelect.value = 'auto';
+            
+            if (!remoteContainer.parentElement || remoteContainer.parentElement.id !== 'videoMain') {
+                videoMain.innerHTML = '';
+                videoMain.appendChild(remoteContainer);
+                videoPip.innerHTML = '';
+                videoPip.appendChild(localContainer);
+            }
+            
+            switchToSetupScreen();
+        });
+
+        roomIdInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                startBtn.click();
+            }
+        });
+    </script>
+</body>
+</html>
