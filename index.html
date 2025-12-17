@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Chat</title>
+    <title>Video Chat P2P (z Apps Script)</title>
     <style>
+        /* --- OGÓLNE STYLA (ODZIEDZICZONE) --- */
         * {
             margin: 0;
             padding: 0;
@@ -408,110 +409,114 @@
             margin-bottom: 16px;
             opacity: 0.5;
         }
+        
+        /* --- NOWE STYLE DLA INTERFEJSU (APPS SCRIPT INTEGRACJA) --- */
 
-        .camera-off-text {
-            font-size: 18px;
-            margin-bottom: 8px;
-            opacity: 0.8;
+        .search-area {
+            position: relative;
         }
-
-        .camera-off-subtext {
-            font-size: 14px;
-            opacity: 0.5;
-        }
-
-        .request-camera-btn {
-            margin-top: 20px;
-            padding: 12px 24px;
-            background: #0084ff;
-            border: none;
-            border-radius: 24px;
-            color: white;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .request-camera-btn:hover:not(:disabled) {
-            background: #0073e6;
-            transform: scale(1.05);
-        }
-
-        .request-camera-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .camera-request-modal {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: #1a2332;
-            border-radius: 16px;
-            padding: 32px;
-            max-width: 400px;
-            width: 90%;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-            z-index: 100;
-            display: none;
-        }
-
-        .camera-request-modal.show {
-            display: block;
-        }
-
-        .modal-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: white;
-            margin-bottom: 16px;
-            text-align: center;
-        }
-
-        .modal-text {
-            font-size: 16px;
-            color: #9ca3af;
-            margin-bottom: 24px;
-            text-align: center;
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 12px;
-        }
-
-        .modal-btn {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .modal-btn-primary {
-            background: #0084ff;
-            color: white;
-        }
-
-        .modal-btn-primary:hover {
-            background: #0073e6;
-        }
-
-        .modal-btn-secondary {
+        #userSearchInput {
+            padding: 8px 12px;
             background: #2d3748;
+            border: 1px solid #4a5568;
+            border-radius: 8px;
             color: white;
         }
-
-        .modal-btn-secondary:hover {
-            background: #374151;
+        #userSearchInput:focus {
+            outline: none;
+            border-color: #0084ff;
+        }
+        .dropdown-content {
+            position: absolute;
+            right: 0;
+            top: 50px; /* Zmień, aby pasowało do nagłówka */
+            background-color: #1a2332;
+            min-width: 280px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.4);
+            z-index: 1000;
+            border-radius: 8px;
+            display: none;
+            padding: 8px;
+        }
+        .dropdown-item {
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            border-bottom: 1px solid #2d3748;
+        }
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+        .dropdown-item button {
+            background: #0084ff;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .dropdown-item button:hover {
+            background: #0073e6;
         }
         
+        /* Menu Screen - Panel boczny i główny widok */
+        #menuScreen {
+            display: none;
+            flex-direction: row;
+            justify-content: flex-start;
+            align-items: stretch; /* Wyrównanie elementów w pionie */
+        }
+
+        .sidebar {
+            width: 300px;
+            min-width: 250px;
+            background: #1a2332;
+            padding: 20px;
+            border-right: 1px solid #2d3748;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .main-view {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .sidebar-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #0084ff;
+        }
+        .friend-item {
+            padding: 10px;
+            background: #0a1929;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+        .friend-item span {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            max-width: 60%;
+        }
+        .friend-item button {
+            margin-left: 5px;
+            padding: 6px 10px;
+            font-size: 13px;
+        }
+
         @media (max-width: 768px) {
             .setup-card {
                 padding: 32px 24px;
@@ -544,13 +549,19 @@
                 width: 56px;
                 height: 56px;
             }
-
-            .camera-off-icon {
-                font-size: 48px;
+            
+            /* Na małych ekranach ukrywamy panel boczny i pokazujemy tylko główny widok */
+            .sidebar {
+                display: none;
+            }
+            
+            #menuScreen {
+                flex-direction: column;
             }
 
-            .camera-off-text {
-                font-size: 16px;
+            .main-view {
+                justify-content: flex-start;
+                padding-top: 80px;
             }
         }
     </style>
@@ -565,35 +576,67 @@
                 </svg>
                 Video Chat
             </div>
+            
+            <div class="search-area">
+                <input type="text" id="userSearchInput" placeholder="🔍 Wyszukaj użytkowników..." style="display: none;">
+                <div class="dropdown-content" id="searchResults"></div>
+            </div>
         </div>
         
         <div class="main-content">
-            <div class="setup-screen" id="setupScreen">
+            
+            <div class="setup-screen" id="authScreen" style="display: flex;">
                 <div class="setup-card">
-                    <h1 class="setup-title">Rozpocznij rozmowę</h1>
+                    <h1 class="setup-title">Zaloguj się / Zarejestruj</h1>
                     
                     <div class="input-wrapper">
-                        <input 
-                            type="text" 
-                            id="roomId" 
-                            placeholder="Wpisz ID pokoju..."
-                            autocomplete="off"
-                        >
+                        <input type="text" id="usernameInput" placeholder="Nazwa użytkownika" autocomplete="username">
+                    </div>
+                    <div class="input-wrapper">
+                        <input type="password" id="passwordInput" placeholder="Hasło" autocomplete="current-password">
                     </div>
                     
                     <div class="button-row">
-                        <button id="startBtn" class="btn btn-primary">
-                            <span>🎥</span>
-                            Utwórz pokój
-                        </button>
-                        <button id="joinBtn" class="btn btn-secondary">
-                            <span>🚪</span>
-                            Dołącz
-                        </button>
+                        <button id="loginBtn" class="btn btn-primary">Zaloguj</button>
+                        <button id="registerBtn" class="btn btn-secondary">Zarejestruj</button>
                     </div>
+                    <div class="settings-info" style="margin-top: 15px; color: #6b7280; text-align: center;">Twoje dane będą przechowywane w Google Sheets.</div>
                 </div>
             </div>
             
+            <div class="setup-screen" id="menuScreen">
+                <div class="sidebar">
+                    <div class="sidebar-title">Zaproszenia (Oczekujące)</div>
+                    <div id="invitationsList" style="margin-bottom: 20px;">Brak zaproszeń.</div>
+                    
+                    <div class="settings-divider"></div>
+
+                    <div class="sidebar-title">Znajomi</div>
+                    <div id="friendsList">Brak znajomych.</div>
+                    
+                    <div class="settings-divider"></div>
+                    <button class="btn btn-secondary" style="padding: 10px; font-size: 14px; margin-top: 10px;" onclick="loadFriendStatus()">Odśwież status</button>
+                </div>
+                
+                <div class="main-view">
+                    <div class="setup-card" style="max-width: 600px;">
+                        <h1 class="setup-title" id="welcomeUser">Witaj!</h1>
+                        <p class="settings-info" style="color: #9ca3af; margin-bottom: 24px;">Twój unikalny ID do połączeń (PeerID): <strong id="userPeerIdDisplay">Ładowanie...</strong></p>
+                        
+                        <div class="input-wrapper">
+                            <input type="text" id="targetPeerId" placeholder="Wpisz PeerID znajomego, aby zadzwonić..." autocomplete="off">
+                        </div>
+                        
+                        <div class="button-row">
+                            <button id="callPeerBtn" class="btn btn-primary">
+                                <span>📞</span> Zadzwoń
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
             <div class="call-screen" id="callScreen">
                 <div class="video-main" id="videoMain">
                     <div class="video-container" id="remoteContainer">
@@ -632,21 +675,11 @@
                 </div>
                 
                 <div class="controls-bar">
-                    <button class="control-btn" id="toggleMicBtn" title="Wycisz mikrofon">
-                        🎤
-                    </button>
-                    <button class="control-btn" id="toggleCamBtn" title="Wyłącz kamerę">
-                        📹
-                    </button>
-                    <button class="control-btn" id="switchCameraBtn" title="Zmień kamerę">
-                        🔄
-                    </button>
-                    <button class="control-btn settings" id="settingsBtn" title="Ustawienia">
-                        ⚙️
-                    </button>
-                    <button class="control-btn end-call" id="endCallBtn" title="Zakończ">
-                        ✖️
-                    </button>
+                    <button class="control-btn" id="toggleMicBtn" title="Wycisz mikrofon">🎤</button>
+                    <button class="control-btn" id="toggleCamBtn" title="Wyłącz kamerę">📹</button>
+                    <button class="control-btn" id="switchCameraBtn" title="Zmień kamerę">🔄</button>
+                    <button class="control-btn settings" id="settingsBtn" title="Ustawienia">⚙️</button>
+                    <button class="control-btn end-call" id="endCallBtn" title="Zakończ">✖️</button>
                 </div>
 
                 <div class="settings-modal" id="settingsModal">
@@ -685,7 +718,7 @@
                             <option value="2500">2.5 Mbps (Wysoki)</option>
                             <option value="1500">1.5 Mbps (Średni)</option>
                             <option value="800">800 Kbps (Niski)</option>
-    </select>
+                        </select>
                         <div class="settings-info">Wyższy bitrate = lepsza jakość</div>
                     </div>
 
@@ -702,8 +735,11 @@
         </div>
     </div>
 
+    <iframe id="appsScriptIframe" src="https://script.google.com/macros/s/AKfycbwhuDOLBGBZHj8MrSh17Z4IXhi2bMFppcJwXQLRx_zwEITxk3P1T9smxatPDc1wN0c_yA/exec" style="display: none;"></iframe>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
     <script>
+        // --- ZMIENNE STANU ---
         let peer = null;
         let currentCall = null;
         let localStream = null;
@@ -722,9 +758,15 @@
         let videoBitrate = 'auto';
         let currentFacingMode = 'user'; // 'user' = przód, 'environment' = tył
 
+        // NOWE ZMIENNE STANU UŻYTKOWNIKA
+        let currentUserId = null;
+        let currentUserPeerId = null;
+        let friendsList = [];
+        let invitationsList = [];
+
+
+        // --- REFERENCJE DO ELEMENTÓW DOM ---
         const roomIdInput = document.getElementById('roomId');
-        const startBtn = document.getElementById('startBtn');
-        const joinBtn = document.getElementById('joinBtn');
         const setupScreen = document.getElementById('setupScreen');
         const callScreen = document.getElementById('callScreen');
         const statusBar = document.getElementById('statusBar');
@@ -751,6 +793,228 @@
         const bitrateSelect = document.getElementById('bitrateSelect');
         const connectionInfo = document.getElementById('connectionInfo');
         const switchCameraBtn = document.getElementById('switchCameraBtn');
+        
+        // NOWE REFERENCJE
+        const usernameInput = document.getElementById('usernameInput');
+        const passwordInput = document.getElementById('passwordInput');
+        const loginBtn = document.getElementById('loginBtn');
+        const registerBtn = document.getElementById('registerBtn');
+        const authScreen = document.getElementById('authScreen');
+        const menuScreen = document.getElementById('menuScreen');
+        const welcomeUser = document.getElementById('welcomeUser');
+        const userPeerIdDisplay = document.getElementById('userPeerIdDisplay');
+        const targetPeerId = document.getElementById('targetPeerId');
+        const callPeerBtn = document.getElementById('callPeerBtn');
+        const userSearchInput = document.getElementById('userSearchInput');
+        const searchResults = document.getElementById('searchResults');
+        const friendsDisplay = document.getElementById('friendsList');
+        const invitationsDisplay = document.getElementById('invitationsList');
+
+
+        // --- FUNKCJE OBSŁUGI KOMUNIKACJI (APPS SCRIPT) ---
+
+        function handleScriptFailure(error) {
+            console.error("Apps Script Error:", error);
+            showStatus(`Błąd Apps Script: ${error.message || 'Nieznany błąd'}`, 'connecting');
+        }
+
+        function initAppsScript() {
+            // Używamy iframe, aby załadować Google Apps Script do tego samego pochodzenia.
+            // Bez tego google.script.run nie będzie działać.
+            const iframe = document.getElementById('appsScriptIframe');
+            iframe.onload = () => {
+                if (typeof google !== 'undefined' && google.script && google.script.run) {
+                    console.log("Apps Script załadowany pomyślnie.");
+                }
+            };
+        }
+
+
+        // --- LOGOWANIE/REJESTRACJA ---
+
+        loginBtn.addEventListener('click', () => {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+            
+            if (!username || !password) {
+                showStatus("Wprowadź nazwę i hasło.", 'connecting');
+                return;
+            }
+            showStatus('Logowanie...', 'connecting');
+            google.script.run.withSuccessHandler(handleLoginResponse)
+                            .withFailureHandler(handleScriptFailure)
+                            .authenticateUser(username, password);
+        });
+
+        registerBtn.addEventListener('click', () => {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+            
+            if (!username || !password) {
+                showStatus("Wprowadź nazwę i hasło.", 'connecting');
+                return;
+            }
+            showStatus('Rejestracja...', 'connecting');
+            google.script.run.withSuccessHandler(handleRegisterResponse)
+                            .withFailureHandler(handleScriptFailure)
+                            .registerUser(username, password);
+        });
+
+        function handleRegisterResponse(response) {
+            showStatus(response.message, response.success ? 'connected' : 'connecting');
+            if (response.success) {
+                usernameInput.value = '';
+                passwordInput.value = '';
+            }
+        }
+
+        function handleLoginResponse(response) {
+            if (response.success) {
+                currentUserId = response.user.id;
+                currentUserPeerId = response.user.peerId;
+                
+                welcomeUser.textContent = `Witaj, ${usernameInput.value}!`;
+                userPeerIdDisplay.textContent = currentUserPeerId;
+                
+                switchToMenuScreen();
+                userSearchInput.style.display = 'block'; // Pokaż lupkę w nagłówku
+                
+                // Inicjalizacja PeerJS z ID użytkownika
+                initializePeer(currentUserPeerId);
+                
+                // Pobieranie listy znajomych i zaproszeń
+                loadFriendStatus();
+
+            } else {
+                showStatus(response.message, 'connecting');
+            }
+        }
+
+        // --- WYSZUKIWANIE I ZNAJOMI ---
+        
+        userSearchInput.addEventListener('input', () => {
+            const query = userSearchInput.value.trim();
+            if (query.length > 2 && currentUserId) {
+                google.script.run.withSuccessHandler(renderSearchResults)
+                                .withFailureHandler(handleScriptFailure)
+                                .searchUsers(query, currentUserId);
+                searchResults.style.display = 'block';
+            } else {
+                searchResults.style.display = 'none';
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            // Ukryj wyniki wyszukiwania po kliknięciu poza polem
+            if (!userSearchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                searchResults.style.display = 'none';
+            }
+        });
+
+        function renderSearchResults(users) {
+            searchResults.innerHTML = '';
+            if (users.length === 0) {
+                searchResults.innerHTML = '<div class="dropdown-item" style="justify-content: center; opacity: 0.7;">Brak wyników</div>';
+                return;
+            }
+
+            users.forEach(user => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.innerHTML = `
+                    <span>${user.username}</span>
+                    <button data-recipient-id="${user.id}" data-recipient-username="${user.username}">Dodaj</button>
+                `;
+                item.querySelector('button').addEventListener('click', (e) => {
+                    const id = e.target.dataset.recipientId;
+                    const username = e.target.dataset.recipientUsername;
+                    sendFriendRequestFrontend(id, username);
+                });
+                searchResults.appendChild(item);
+            });
+        }
+
+        function sendFriendRequestFrontend(recipientId, recipientUsername) {
+            if (!currentUserId) return;
+            
+            google.script.run.withSuccessHandler(response => {
+                showStatus(response.message, response.success ? 'connected' : 'connecting');
+                searchResults.style.display = 'none';
+                userSearchInput.value = '';
+            })
+            .withFailureHandler(handleScriptFailure)
+            .sendFriendRequest(currentUserId, recipientId);
+        }
+        
+        function acceptFriendRequestFrontend(rowId) {
+            google.script.run.withSuccessHandler(() => {
+                showStatus("Zaproszenie zaakceptowane! Odśwież listę.", 'connected');
+                loadFriendStatus();
+            })
+            .withFailureHandler(handleScriptFailure)
+            .acceptFriendRequest(rowId);
+        }
+
+
+        function loadFriendStatus() {
+            if (!currentUserId) {
+                console.warn('Nie można załadować statusu znajomych - użytkownik nie jest zalogowany.');
+                return;
+            }
+            showStatus('Ładowanie statusu znajomych...', 'connecting');
+            google.script.run.withSuccessHandler(renderFriendStatus)
+                            .withFailureHandler(handleScriptFailure)
+                            .getFriendStatus(currentUserId);
+        }
+
+        function renderFriendStatus(status) {
+            friendsList = status.friends;
+            invitationsList = status.invitations;
+            showStatus('Status załadowany.', 'connected');
+            
+            // Renderowanie zaproszeń
+            if (invitationsList.length > 0) {
+                invitationsDisplay.innerHTML = invitationsList.map(inv => `
+                    <div class="friend-item">
+                        <span>📨 ${inv.username}</span>
+                        <div>
+                            <button class="btn btn-primary" style="padding: 5px 10px;" data-row-id="${inv.row}">Akceptuj</button>
+                            </div>
+                    </div>
+                `).join('');
+
+                invitationsDisplay.querySelectorAll('.friend-item button').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const rowId = e.target.dataset.rowId;
+                        acceptFriendRequestFrontend(rowId);
+                    });
+                });
+            } else {
+                invitationsDisplay.innerHTML = '<div style="color: #6b7280;">Brak oczekujących zaproszeń.</div>';
+            }
+            
+            // Renderowanie znajomych
+            if (friendsList.length > 0) {
+                friendsDisplay.innerHTML = friendsList.map(friend => `
+                    <div class="friend-item">
+                        <span>🟢 ${friend.username}</span>
+                        <button class="btn btn-primary" style="padding: 5px 10px;" data-peer-id="${friend.peerId}">📞 Zadzwoń</button>
+                    </div>
+                `).join('');
+
+                friendsDisplay.querySelectorAll('.friend-item button').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const peerId = e.target.dataset.peerId;
+                        startCall(peerId);
+                    });
+                });
+            } else {
+                friendsDisplay.innerHTML = '<div style="color: #6b7280;">Brak zaakceptowanych znajomych.</div>';
+            }
+        }
+
+
+        // --- FUNKCJE WEBRTC I POŁĄCZEŃ --- (Zachowane i dostosowane)
 
         function showStatus(message, type = 'connecting') {
             statusBar.textContent = message;
@@ -761,10 +1025,10 @@
                 }
             }, 3000);
         }
-
+        
+        // Funkcja do uzyskania streamu (zachowana)
         async function getMediaStream() {
             try {
-                // Konfiguracja jakości wideo
                 let videoConstraints = { facingMode: currentFacingMode };
                 
                 if (videoQuality !== 'auto') {
@@ -794,29 +1058,21 @@
                     }
                 });
                 
-                // Tworzymy dodatkowe przetwarzanie audio
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 const source = audioContext.createMediaStreamSource(stream);
-                
-                // Kompressor - redukuje głośne dźwięki i wzmacnia ciche
                 const compressor = audioContext.createDynamicsCompressor();
                 compressor.threshold.value = -50;
                 compressor.knee.value = 40;
                 compressor.ratio.value = 12;
                 compressor.attack.value = 0;
                 compressor.release.value = 0.25;
-                
-                // High-pass filter - usuwa niskie częstotliwości (szum)
                 const highPassFilter = audioContext.createBiquadFilter();
                 highPassFilter.type = 'highpass';
                 highPassFilter.frequency.value = 100;
-                
-                // Low-pass filter - usuwa wysokie częstotliwości (syk)
                 const lowPassFilter = audioContext.createBiquadFilter();
                 lowPassFilter.type = 'lowpass';
                 lowPassFilter.frequency.value = 8000;
                 
-                // Łączymy wszystko w łańcuch
                 source.connect(highPassFilter);
                 highPassFilter.connect(lowPassFilter);
                 lowPassFilter.connect(compressor);
@@ -824,11 +1080,11 @@
                 const destination = audioContext.createMediaStreamDestination();
                 compressor.connect(destination);
                 
-                // Tworzymy nowy stream z przetworzonymi audio i oryginalnym video
                 const videoTrack = stream.getVideoTracks()[0];
                 const processedAudioTrack = destination.stream.getAudioTracks()[0];
                 
                 processedStream = new MediaStream([videoTrack, processedAudioTrack]);
+                localStream = stream; // Zapisujemy też oryginalny stream dla łatwiejszego zarządzania
                 
                 return processedStream;
             } catch (err) {
@@ -837,6 +1093,7 @@
             }
         }
 
+        // Funkcja tworzenia Peer (zachowana)
         function createPeer(peerId = null) {
             const config = {
                 host: '0.peerjs.com',
@@ -845,28 +1102,12 @@
                 path: '/',
                 config: {
                     iceServers: [
-                        // Serwery STUN (Google)
                         { urls: 'stun:stun.l.google.com:19302' },
                         { urls: 'stun:stun1.l.google.com:19302' },
                         { urls: 'stun:stun2.l.google.com:19302' },
-                        { urls: 'stun:stun3.l.google.com:19302' },
-                        { urls: 'stun:stun4.l.google.com:19302' },
-                        // Publiczne serwery TURN (dla lepszej stabilności)
-                        {
-                            urls: 'turn:openrelay.metered.ca:80',
-                            username: 'openrelayproject',
-                            credential: 'openrelayproject'
-                        },
-                        {
-                            urls: 'turn:openrelay.metered.ca:443',
-                            username: 'openrelayproject',
-                            credential: 'openrelayproject'
-                        },
-                        {
-                            urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-                            username: 'openrelayproject',
-                            credential: 'openrelayproject'
-                        }
+                        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+                        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+                        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
                     ],
                     sdpSemantics: 'unified-plan'
                 },
@@ -880,15 +1121,177 @@
             return new Peer(config);
         }
 
-        function switchToCallScreen() {
-            setupScreen.style.display = 'none';
-            callScreen.classList.add('active');
+        // Nowa inicjalizacja PeerJS (przy logowaniu)
+        async function initializePeer(peerId) {
+            if (peer) peer.destroy(); // Jeśli istnieje, zniszcz
+            peer = createPeer(peerId);
+
+            peer.on('open', (id) => {
+                showStatus(`Online. Twój ID: ${id}`, 'connected');
+                // Automatycznie odbieraj połączenia
+                peer.on('call', async (call) => {
+                    showStatus(`Przychodzące połączenie od ${call.peer}...`, 'connecting');
+                    try {
+                        // Sprawdź, czy stream już jest (z poprzedniej próby)
+                        if (!localStream) {
+                           await getMediaStream();
+                           localVideo.srcObject = processedStream;
+                        }
+                       
+                        currentCall = call;
+                        call.answer(processedStream);
+                        setupCallListeners(call);
+                        switchToCallScreen();
+                    } catch (e) {
+                        showStatus('Błąd: Brak dostępu do mediów. Odrzucono połączenie.', 'connecting');
+                        call.close();
+                    }
+                });
+                
+                // Odbieranie połączenia danych
+                peer.on('connection', (conn) => {
+                    setupDataConnection(conn);
+                });
+            });
+
+            peer.on('error', (err) => { console.error('Peer error:', err); });
+        }
+        
+        // Inicjacja połączenia wychodzącego
+        callPeerBtn.addEventListener('click', () => {
+            const peerToCall = targetPeerId.value.trim();
+            if (peerToCall) {
+                startCall(peerToCall);
+            } else {
+                showStatus('Wprowadź ID rozmówcy.', 'connecting');
+            }
+        });
+
+        async function startCall(peerId) {
+            if (!peer || peer.destroyed) {
+                showStatus('Błąd: Brak połączenia z serwerem PeerJS. Zaloguj się ponownie.', 'connecting');
+                return;
+            }
+            if (currentCall) {
+                showStatus('Już jesteś w trakcie rozmowy.', 'connecting');
+                return;
+            }
+
+            try {
+                showStatus(`Łączenie z ID: ${peerId}...`, 'connecting');
+                
+                // Uruchomienie mediów
+                await getMediaStream();
+                localVideo.srcObject = processedStream;
+                
+                // Połączenie danych (dla statusów kamery/mikrofonu)
+                const conn = peer.connect(peerId);
+                setupDataConnection(conn);
+
+                // Połączenie wideo
+                const call = peer.call(peerId, processedStream);
+                
+                if (!call) {
+                    showStatus('Nie znaleziono użytkownika lub błąd połączenia.', 'connecting');
+                    return;
+                }
+                
+                currentCall = call;
+                setupCallListeners(call);
+                switchToCallScreen();
+                
+            } catch (err) {
+                console.error(err);
+                showStatus('Błąd połączenia. Sprawdź kamerę/mikrofon.', 'connecting');
+            }
+        }
+        
+        function setupCallListeners(call) {
+            call.on('stream', (remoteStream) => {
+                remoteVideo.srcObject = remoteStream;
+                showStatus('Połączono', 'connected');
+                applyBitrateLimit(call);
+                setInterval(() => updateConnectionInfo(), 2000);
+            });
+
+            call.on('close', () => {
+                showStatus('Rozmowa zakończona', 'connecting');
+                endCall();
+            });
+            
+            call.on('error', (err) => {
+                console.error('Call error:', err);
+                showStatus('Błąd połączenia', 'connecting');
+                endCall();
+            });
+        }
+        
+        // Funkcja zakończenia rozmowy (dostosowana do nowego UI)
+        endCallBtn.addEventListener('click', () => {
+            showStatus('Rozłączanie...', 'connecting');
+            endCall();
+        });
+
+        function endCall() {
+            if (currentCall) currentCall.close();
+            if (dataConnection) dataConnection.close();
+            
+            // Zatrzymywanie streamów
+            if (localStream) localStream.getTracks().forEach(track => track.stop());
+            if (processedStream) processedStream.getTracks().forEach(track => track.stop());
+            if (audioContext) audioContext.close();
+            
+            localVideo.srcObject = null;
+            remoteVideo.srcObject = null;
+            
+            // Resetowanie stanu
+            currentCall = null;
+            localStream = null;
+            processedStream = null;
+            audioContext = null;
+            dataConnection = null;
+
+            // Resetowanie UI do stanu menu
+            isMicEnabled = true;
+            isCamEnabled = true;
+            toggleMicBtn.classList.remove('active');
+            toggleCamBtn.classList.remove('active');
+            toggleMicBtn.textContent = '🎤';
+            toggleCamBtn.textContent = '📹';
+            localCameraOff.classList.remove('show');
+            remoteCameraOff.classList.remove('show');
+            cameraRequestModal.classList.remove('show');
+            settingsModal.classList.remove('show');
+            targetPeerId.value = '';
+            
+            switchToMenuScreen(); 
+            loadFriendStatus(); 
         }
 
-        function switchToSetupScreen() {
+        // --- ZARZĄDZANIE EKRANAMI ---
+
+        function switchToMenuScreen() {
             callScreen.classList.remove('active');
-            setupScreen.style.display = 'flex';
+            authScreen.style.display = 'none';
+            menuScreen.style.display = 'flex';
         }
+
+        function switchToCallScreen() {
+            authScreen.style.display = 'none';
+            menuScreen.style.display = 'none';
+            callScreen.classList.add('active');
+            // Resetujemy ułożenie wideo na start
+            isLocalMain = false;
+            if (remoteContainer.parentElement !== videoMain) {
+                videoMain.appendChild(remoteContainer);
+                videoPip.appendChild(localContainer);
+            }
+        }
+        
+        // Reszta oryginalnych funkcji (swapVideos, toggle, settings, bitrate)
+        
+        localContainer.addEventListener('click', swapVideos);
+        remoteContainer.addEventListener('click', swapVideos);
 
         function swapVideos() {
             isLocalMain = !isLocalMain;
@@ -905,10 +1308,7 @@
                 videoPip.appendChild(localContainer);
             }
         }
-
-        localContainer.addEventListener('click', swapVideos);
-        remoteContainer.addEventListener('click', swapVideos);
-
+        
         function sendDataMessage(type, data) {
             if (dataConnection && dataConnection.open) {
                 dataConnection.send({ type, data });
@@ -926,38 +1326,22 @@
 
         toggleMicBtn.addEventListener('click', () => {
             isMicEnabled = !isMicEnabled;
-            
-            // Wyłączamy/włączamy zarówno oryginalny jak i przetworzony stream
-            if (localStream) {
-                localStream.getAudioTracks().forEach(track => {
-                    track.enabled = isMicEnabled;
-                });
-            }
             if (processedStream) {
                 processedStream.getAudioTracks().forEach(track => {
                     track.enabled = isMicEnabled;
                 });
             }
-            
             toggleMicBtn.classList.toggle('active', !isMicEnabled);
             toggleMicBtn.textContent = isMicEnabled ? '🎤' : '🔇';
         });
 
         toggleCamBtn.addEventListener('click', () => {
             isCamEnabled = !isCamEnabled;
-            
-            // Wyłączamy/włączamy zarówno oryginalny jak i przetworzony stream
-            if (localStream) {
-                localStream.getVideoTracks().forEach(track => {
-                    track.enabled = isCamEnabled;
-                });
-            }
             if (processedStream) {
                 processedStream.getVideoTracks().forEach(track => {
                     track.enabled = isCamEnabled;
                 });
             }
-            
             toggleCamBtn.classList.toggle('active', !isCamEnabled);
             toggleCamBtn.textContent = isCamEnabled ? '📹' : '📷';
             updateCameraStatus();
@@ -967,24 +1351,34 @@
             const now = Date.now();
             if (now - lastCameraRequestTime < CAMERA_REQUEST_COOLDOWN) {
                 const remainingTime = Math.ceil((CAMERA_REQUEST_COOLDOWN - (now - lastCameraRequestTime)) / 1000 / 60);
-                showStatus(`Poczekaj jeszcze ${remainingTime} min`, 'connecting');
+                showStatus(`Poczekaj jeszcze ${remainingTime} min na prośbę.`, 'connecting');
                 return;
             }
-            
             lastCameraRequestTime = now;
             sendDataMessage('camera-request', {});
             showStatus('Wysłano prośbę o kamerę', 'connected');
             requestCameraBtn.disabled = true;
-            
-            setTimeout(() => {
-                requestCameraBtn.disabled = false;
-            }, CAMERA_REQUEST_COOLDOWN);
+            setTimeout(() => { requestCameraBtn.disabled = false; }, CAMERA_REQUEST_COOLDOWN);
         });
 
-        acceptCameraBtn.addEventListener('click', () => {
+        acceptCameraBtn.addEventListener('click', async () => {
             cameraRequestModal.classList.remove('show');
             if (!isCamEnabled) {
-                toggleCamBtn.click();
+                // Konieczne jest ponowne uruchomienie streamu, aby upewnić się, że kamera działa po prośbie
+                if (currentCall) {
+                    showStatus('Włączanie kamery...', 'connecting');
+                    await getMediaStream();
+                    localVideo.srcObject = processedStream;
+                    const videoTrack = processedStream.getVideoTracks()[0];
+                    const sender = currentCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                    if (sender) await sender.replaceTrack(videoTrack);
+
+                    isCamEnabled = true;
+                    toggleCamBtn.classList.remove('active');
+                    toggleCamBtn.textContent = '📹';
+                    updateCameraStatus();
+                    showStatus('Kamera włączona.', 'connected');
+                }
             }
         });
 
@@ -992,73 +1386,17 @@
             cameraRequestModal.classList.remove('show');
         });
 
-        settingsBtn.addEventListener('click', () => {
-            settingsModal.classList.toggle('show');
-            if (settingsModal.classList.contains('show')) {
-                updateConnectionInfo();
-            }
-        });
-
-        settingsCloseBtn.addEventListener('click', () => {
-            settingsModal.classList.remove('show');
-        });
+        settingsBtn.addEventListener('click', () => { settingsModal.classList.toggle('show'); });
+        settingsCloseBtn.addEventListener('click', () => { settingsModal.classList.remove('show'); });
 
         qualitySelect.addEventListener('change', async (e) => {
             videoQuality = e.target.value;
-            showStatus('Restartowanie kamery...', 'connecting');
-            
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-            }
-            if (processedStream) {
-                processedStream.getTracks().forEach(track => track.stop());
-            }
-            if (audioContext) {
-                audioContext.close();
-            }
-
-            localStream = await getMediaStream();
-            localVideo.srcObject = localStream;
-
-            if (currentCall) {
-                const videoTrack = processedStream.getVideoTracks()[0];
-                const sender = currentCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-                if (sender) {
-                    sender.replaceTrack(videoTrack);
-                }
-            }
-
-            showStatus('Jakość zaktualizowana', 'connected');
+            if (currentCall) restartMediaOnSettingChange();
         });
-
         fpsSelect.addEventListener('change', async (e) => {
             videoFPS = e.target.value;
-            showStatus('Restartowanie kamery...', 'connecting');
-            
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-            }
-            if (processedStream) {
-                processedStream.getTracks().forEach(track => track.stop());
-            }
-            if (audioContext) {
-                audioContext.close();
-            }
-
-            localStream = await getMediaStream();
-            localVideo.srcObject = localStream;
-
-            if (currentCall) {
-                const videoTrack = processedStream.getVideoTracks()[0];
-                const sender = currentCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-                if (sender) {
-                    sender.replaceTrack(videoTrack);
-                }
-            }
-
-            showStatus('FPS zaktualizowane', 'connected');
+            if (currentCall) restartMediaOnSettingChange();
         });
-
         bitrateSelect.addEventListener('change', (e) => {
             videoBitrate = e.target.value;
             if (currentCall) {
@@ -1067,45 +1405,39 @@
             }
         });
 
+        async function restartMediaOnSettingChange() {
+            showStatus('Restartowanie kamery...', 'connecting');
+            
+            if (localStream) localStream.getTracks().forEach(track => track.stop());
+            if (processedStream) processedStream.getTracks().forEach(track => track.stop());
+            if (audioContext) audioContext.close();
+
+            const newStream = await getMediaStream();
+            localVideo.srcObject = newStream;
+
+            if (currentCall) {
+                const videoTrack = processedStream.getVideoTracks()[0];
+                const audioTrack = processedStream.getAudioTracks()[0];
+                
+                const videoSender = currentCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                const audioSender = currentCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'audio');
+                
+                if (videoSender) await videoSender.replaceTrack(videoTrack);
+                if (audioSender) await audioSender.replaceTrack(audioTrack);
+            }
+            showStatus('Ustawienia wideo zaktualizowane', 'connected');
+        }
+
         switchCameraBtn.addEventListener('click', async () => {
             if (!localStream) return;
-
             try {
                 showStatus('Zmienianie kamery...', 'connecting');
-                
-                // Przełączamy tryb kamery
                 currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-                
-                // Zatrzymujemy stare streamy
-                if (localStream) {
-                    localStream.getTracks().forEach(track => track.stop());
-                }
-                if (processedStream) {
-                    processedStream.getTracks().forEach(track => track.stop());
-                }
-                if (audioContext) {
-                    audioContext.close();
-                }
-
-                // Tworzymy nowy stream z nową kamerą
-                localStream = await getMediaStream();
-                localVideo.srcObject = localStream;
-
-                // Jeśli jesteśmy w rozmowie, aktualizujemy track dla rozmówcy
-                if (currentCall && currentCall.peerConnection) {
-                    const videoTrack = processedStream.getVideoTracks()[0];
-                    const sender = currentCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-                    if (sender) {
-                        await sender.replaceTrack(videoTrack);
-                    }
-                }
-
-                showStatus('Kamera zmieniona', 'connected');
+                await restartMediaOnSettingChange();
             } catch (err) {
                 console.error('Błąd zmiany kamery:', err);
                 showStatus('Nie udało się zmienić kamery', 'connecting');
-                // Wracamy do poprzedniej kamery
-                currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+                currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user'; // Wracamy
             }
         });
 
@@ -1144,6 +1476,8 @@
                     });
                     if (info.length > 0) {
                         connectionInfo.innerHTML = info.join('<br>');
+                    } else {
+                        connectionInfo.innerHTML = "Łączenie...";
                     }
                 });
             }
@@ -1151,236 +1485,24 @@
 
         function applyBitrateLimit(call) {
             if (videoBitrate === 'auto' || !call || !call.peerConnection) return;
-
             const sender = call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
             if (!sender) return;
-
             const parameters = sender.getParameters();
             if (!parameters.encodings) parameters.encodings = [{}];
-            
             parameters.encodings[0].maxBitrate = parseInt(videoBitrate) * 1000;
-            
             sender.setParameters(parameters).catch(err => {
                 console.error('Błąd ustawiania bitrate:', err);
             });
         }
-
-        startBtn.addEventListener('click', async () => {
-            const roomId = roomIdInput.value.trim();
-            if (!roomId) {
-                roomIdInput.focus();
-                return;
-            }
-
-            try {
-                showStatus('Uruchamianie kamery...', 'connecting');
-                localStream = await getMediaStream();
-                localVideo.srcObject = localStream;
-                switchToCallScreen();
-
-                showStatus('Tworzenie pokoju...', 'connecting');
-                peer = createPeer(roomId);
-
-                peer.on('open', (id) => {
-                    showStatus('Oczekiwanie na drugą osobę...', 'connected');
-                    startBtn.disabled = true;
-                    joinBtn.disabled = true;
-                });
-
-                peer.on('connection', (conn) => {
-                    setupDataConnection(conn);
-                });
-
-                peer.on('call', (call) => {
-                    currentCall = call;
-                    call.answer(processedStream || localStream);
-                    
-                    call.on('stream', (remoteStream) => {
-                        remoteVideo.srcObject = remoteStream;
-                        showStatus('Połączono', 'connected');
-                        applyBitrateLimit(call);
-                        setInterval(() => updateConnectionInfo(), 2000);
-                    });
-
-                    call.on('close', () => {
-                        showStatus('Rozmówca rozłączył się', 'connecting');
-                        remoteVideo.srcObject = null;
-                    });
-                });
-
-                peer.on('error', (err) => {
-                    console.error('Peer error:', err);
-                    if (err.type === 'unavailable-id') {
-                        showStatus('To ID jest zajęte', 'connecting');
-                    } else {
-                        showStatus('Błąd połączenia', 'connecting');
-                    }
-                });
-
-                peer.on('disconnected', () => {
-                    showStatus('Rozłączono z serwerem...', 'connecting');
-                    setTimeout(() => {
-                        if (peer && !peer.destroyed) {
-                            peer.reconnect();
-                        }
-                    }, 1000);
-                });
-
-            } catch (err) {
-                console.error(err);
-            }
-        });
-
-        joinBtn.addEventListener('click', async () => {
-            const roomId = roomIdInput.value.trim();
-            if (!roomId) {
-                roomIdInput.focus();
-                return;
-            }
-
-            try {
-                showStatus('Uruchamianie kamery...', 'connecting');
-                localStream = await getMediaStream();
-                localVideo.srcObject = localStream;
-                switchToCallScreen();
-
-                showStatus('Łączenie...', 'connecting');
-                peer = createPeer();
-
-                peer.on('open', (id) => {
-                    const conn = peer.connect(roomId);
-                    setupDataConnection(conn);
-
-                    setTimeout(() => {
-                        const call = peer.call(roomId, processedStream || localStream);
-                        
-                        if (!call) {
-                            showStatus('Pokój nie istnieje', 'connecting');
-                            return;
-                        }
-
-                        currentCall = call;
-
-                        call.on('stream', (remoteStream) => {
-                            remoteVideo.srcObject = remoteStream;
-                            showStatus('Połączono', 'connected');
-                            applyBitrateLimit(call);
-                            setInterval(() => updateConnectionInfo(), 2000);
-                        });
-
-                        call.on('close', () => {
-                            showStatus('Rozmowa zakończona', 'connecting');
-                            remoteVideo.srcObject = null;
-                        });
-
-                        call.on('error', (err) => {
-                            console.error('Call error:', err);
-                            showStatus('Błąd połączenia', 'connecting');
-                        });
-                    }, 1000);
-
-                    startBtn.disabled = true;
-                    joinBtn.disabled = true;
-                });
-
-                peer.on('connection', (conn) => {
-                    setupDataConnection(conn);
-                });
-
-                peer.on('error', (err) => {
-                    console.error('Peer error:', err);
-                    if (err.type === 'peer-unavailable') {
-                        showStatus('Nie znaleziono pokoju', 'connecting');
-                    } else {
-                        showStatus('Błąd połączenia', 'connecting');
-                    }
-                });
-
-                peer.on('disconnected', () => {
-                    showStatus('Rozłączono z serwerem...', 'connecting');
-                    setTimeout(() => {
-                        if (peer && !peer.destroyed) {
-                            peer.reconnect();
-                        }
-                    }, 1000);
-                });
-
-            } catch (err) {
-                console.error(err);
-            }
-        });
-
-        endCallBtn.addEventListener('click', () => {
-            if (currentCall) {
-                currentCall.close();
-            }
-            if (dataConnection) {
-                dataConnection.close();
-            }
-            if (peer) {
-                peer.destroy();
-            }
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-            }
-            if (processedStream) {
-                processedStream.getTracks().forEach(track => track.stop());
-            }
-            if (audioContext) {
-                audioContext.close();
-            }
-            
-            localVideo.srcObject = null;
-            remoteVideo.srcObject = null;
-            
-            startBtn.disabled = false;
-            joinBtn.disabled = false;
-            
-            peer = null;
-            currentCall = null;
-            localStream = null;
-            processedStream = null;
-            audioContext = null;
-            dataConnection = null;
-            isMicEnabled = true;
-            isCamEnabled = true;
-            isLocalMain = false;
-            lastCameraRequestTime = 0;
-            
-            toggleMicBtn.classList.remove('active');
-            toggleCamBtn.classList.remove('active');
-            toggleMicBtn.textContent = '🎤';
-            toggleCamBtn.textContent = '📹';
-            
-            localCameraOff.classList.remove('show');
-            remoteCameraOff.classList.remove('show');
-            cameraRequestModal.classList.remove('show');
-            settingsModal.classList.remove('show');
-            requestCameraBtn.disabled = false;
-            
-            videoQuality = 'auto';
-            videoFPS = 'auto';
-            videoBitrate = 'auto';
-            currentFacingMode = 'user';
-            qualitySelect.value = 'auto';
-            fpsSelect.value = 'auto';
-            bitrateSelect.value = 'auto';
-            
-            if (!remoteContainer.parentElement || remoteContainer.parentElement.id !== 'videoMain') {
-                videoMain.innerHTML = '';
-                videoMain.appendChild(remoteContainer);
-                videoPip.innerHTML = '';
-                videoPip.appendChild(localContainer);
-            }
-            
-            switchToSetupScreen();
-        });
-
-        roomIdInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                startBtn.click();
-            }
-        });
+        
+        // --- INICJALIZACJA ---
+        
+        window.onload = () => {
+            initAppsScript();
+            // Startujemy na ekranie autentykacji
+            authScreen.style.display = 'flex';
+            menuScreen.style.display = 'none';
+        }
     </script>
 </body>
 </html>
