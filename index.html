@@ -3,1506 +3,170 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Chat P2P (z Apps Script)</title>
+    <title>Video Chat</title>
     <style>
-        /* --- OGÓLNE STYLA (ODZIEDZICZONE) --- */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: #0a1929;
-            height: 100vh;
-            overflow: hidden;
-        }
-        
-        .app-container {
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .header {
-            background: #1a2332;
-            padding: 16px 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid #2d3748;
-        }
-        
-        .logo {
-            font-size: 24px;
-            font-weight: 700;
-            color: #0084ff;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        
-        .setup-screen {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        
-        .setup-card {
-            background: #1a2332;
-            border-radius: 16px;
-            padding: 40px;
-            max-width: 480px;
-            width: 100%;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-        }
-        
-        .setup-title {
-            color: #fff;
-            font-size: 28px;
-            font-weight: 600;
-            margin-bottom: 32px;
-            text-align: center;
-        }
-        
-        .input-wrapper {
-            margin-bottom: 24px;
-        }
-        
-        .input-wrapper input {
-            width: 100%;
-            padding: 16px;
-            background: #0a1929;
-            border: 2px solid #2d3748;
-            border-radius: 12px;
-            font-size: 16px;
-            color: #fff;
-            transition: all 0.2s;
-        }
-        
-        .input-wrapper input:focus {
-            outline: none;
-            border-color: #0084ff;
-            background: #0f1e2e;
-        }
-        
-        .input-wrapper input::placeholder {
-            color: #6b7280;
-        }
-        
-        .button-row {
-            display: flex;
-            gap: 12px;
-        }
-        
-        .btn {
-            flex: 1;
-            padding: 16px;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        
-        .btn-primary {
-            background: #0084ff;
-            color: white;
-        }
-        
-        .btn-primary:hover:not(:disabled) {
-            background: #0073e6;
-            transform: translateY(-1px);
-        }
-        
-        .btn-secondary {
-            background: #2d3748;
-            color: white;
-        }
-        
-        .btn-secondary:hover:not(:disabled) {
-            background: #374151;
-        }
-        
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-        
-        .call-screen {
-            flex: 1;
-            display: none;
-            position: relative;
-            background: #000;
-        }
-        
-        .call-screen.active {
-            display: block;
-        }
-        
-        .video-main {
-            position: absolute;
-            inset: 0;
-            background: #000;
-        }
-        
-        .video-container {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            background: #000;
-            cursor: pointer;
-        }
-        
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .video-label {
-            position: absolute;
-            top: 16px;
-            left: 16px;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(10px);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 500;
-            z-index: 5;
-        }
-        
-        .video-pip {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 240px;
-            height: 180px;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-            border: 2px solid #2d3748;
-            z-index: 10;
-            cursor: pointer;
-        }
-        
-        .controls-bar {
-            position: absolute;
-            bottom: 120px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 16px;
-            z-index: 20;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(10px);
-            padding: 16px 24px;
-            border-radius: 48px;
-        }
-        
-        .control-btn {
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            transition: all 0.2s;
-            background: rgba(255, 255, 255, 0.15);
-            color: white;
-        }
-        
-        .control-btn:hover {
-            background: rgba(255, 255, 255, 0.25);
-            transform: scale(1.05);
-        }
-        
-        .control-btn.active {
-            background: rgba(239, 68, 68, 0.9);
-        }
-        
-        .control-btn.end-call {
-            background: #ef4444;
-            width: 64px;
-            height: 64px;
-        }
-        
-        .control-btn.end-call:hover {
-            background: #dc2626;
-        }
-
-        .control-btn.settings {
-            background: rgba(100, 116, 139, 0.9);
-        }
-
-        .control-btn.settings:hover {
-            background: rgba(71, 85, 105, 0.9);
-        }
-
-        .settings-modal {
-            position: absolute;
-            bottom: 200px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #1a2332;
-            border-radius: 16px;
-            padding: 24px;
-            width: 90%;
-            max-width: 400px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-            z-index: 100;
-            display: none;
-            max-height: 70vh;
-            overflow-y: auto;
-        }
-
-        .settings-modal.show {
-            display: block;
-        }
-
-        .settings-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .settings-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: white;
-        }
-
-        .settings-close {
-            background: none;
-            border: none;
-            color: #9ca3af;
-            font-size: 24px;
-            cursor: pointer;
-            padding: 0;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .settings-close:hover {
-            color: white;
-        }
-
-        .settings-group {
-            margin-bottom: 20px;
-        }
-
-        .settings-label {
-            display: block;
-            color: #9ca3af;
-            font-size: 14px;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-
-        .settings-select {
-            width: 100%;
-            padding: 12px;
-            background: #0a1929;
-            border: 2px solid #2d3748;
-            border-radius: 8px;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            transition: border-color 0.2s;
-        }
-
-        .settings-select:focus {
-            outline: none;
-            border-color: #0084ff;
-        }
-
-        .settings-select option {
-            background: #1a2332;
-            color: white;
-        }
-
-        .settings-info {
-            font-size: 12px;
-            color: #6b7280;
-            margin-top: 4px;
-        }
-
-        .settings-divider {
-            height: 1px;
-            background: #2d3748;
-            margin: 20px 0;
-        }
-        
-        .status-bar {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(10px);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 24px;
-            font-size: 14px;
-            z-index: 15;
-            display: none;
-        }
-        
-        .status-bar.show {
-            display: block;
-        }
-        
-        .status-bar.connecting {
-            background: rgba(251, 191, 36, 0.9);
-            color: #000;
-        }
-        
-        .status-bar.connected {
-            background: rgba(34, 197, 94, 0.9);
-        }
-
-        .camera-off-overlay {
-            position: absolute;
-            inset: 0;
-            background: #1a1a1a;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            z-index: 3;
-        }
-
-        .camera-off-overlay.show {
-            display: flex;
-        }
-
-        .camera-off-icon {
-            font-size: 64px;
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
-        
-        /* --- NOWE STYLE DLA INTERFEJSU (APPS SCRIPT INTEGRACJA) --- */
-
-        .search-area {
-            position: relative;
-        }
-        #userSearchInput {
-            padding: 8px 12px;
-            background: #2d3748;
-            border: 1px solid #4a5568;
-            border-radius: 8px;
-            color: white;
-        }
-        #userSearchInput:focus {
-            outline: none;
-            border-color: #0084ff;
-        }
-        .dropdown-content {
-            position: absolute;
-            right: 0;
-            top: 50px; /* Zmień, aby pasowało do nagłówka */
-            background-color: #1a2332;
-            min-width: 280px;
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.4);
-            z-index: 1000;
-            border-radius: 8px;
-            display: none;
-            padding: 8px;
-        }
-        .dropdown-item {
-            padding: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: white;
-            border-bottom: 1px solid #2d3748;
-        }
-        .dropdown-item:last-child {
-            border-bottom: none;
-        }
-        .dropdown-item button {
-            background: #0084ff;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .dropdown-item button:hover {
-            background: #0073e6;
-        }
-        
-        /* Menu Screen - Panel boczny i główny widok */
-        #menuScreen {
-            display: none;
-            flex-direction: row;
-            justify-content: flex-start;
-            align-items: stretch; /* Wyrównanie elementów w pionie */
-        }
-
-        .sidebar {
-            width: 300px;
-            min-width: 250px;
-            background: #1a2332;
-            padding: 20px;
-            border-right: 1px solid #2d3748;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-        }
-        .main-view {
-            flex: 1;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-        .sidebar-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #0084ff;
-        }
-        .friend-item {
-            padding: 10px;
-            background: #0a1929;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 14px;
-        }
-        .friend-item span {
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-            max-width: 60%;
-        }
-        .friend-item button {
-            margin-left: 5px;
-            padding: 6px 10px;
-            font-size: 13px;
-        }
-
-        @media (max-width: 768px) {
-            .setup-card {
-                padding: 32px 24px;
-            }
-            
-            .button-row {
-                flex-direction: column;
-            }
-            
-            .video-pip {
-                width: 120px;
-                height: 90px;
-                top: 16px;
-                right: 16px;
-            }
-            
-            .controls-bar {
-                bottom: 100px;
-                padding: 12px 16px;
-                gap: 12px;
-            }
-            
-            .control-btn {
-                width: 48px;
-                height: 48px;
-                font-size: 18px;
-            }
-            
-            .control-btn.end-call {
-                width: 56px;
-                height: 56px;
-            }
-            
-            /* Na małych ekranach ukrywamy panel boczny i pokazujemy tylko główny widok */
-            .sidebar {
-                display: none;
-            }
-            
-            #menuScreen {
-                flex-direction: column;
-            }
-
-            .main-view {
-                justify-content: flex-start;
-                padding-top: 80px;
-            }
-        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a1929;height:100vh;overflow:hidden}
+        .app-container{height:100vh;display:flex;flex-direction:column}
+        .header{background:#1a2332;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #2d3748}
+        .logo{font-size:24px;font-weight:700;color:#0084ff;display:flex;align-items:center;gap:8px}
+        .main-content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+        .setup-screen{flex:1;display:flex;align-items:center;justify-content:center;padding:20px}
+        .setup-card{background:#1a2332;border-radius:16px;padding:40px;max-width:480px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+        .setup-title{color:#fff;font-size:28px;font-weight:600;margin-bottom:32px;text-align:center}
+        .input-wrapper{margin-bottom:24px}
+        .input-wrapper input{width:100%;padding:16px;background:#0a1929;border:2px solid #2d3748;border-radius:12px;font-size:16px;color:#fff;transition:.2s}
+        .input-wrapper input:focus{outline:none;border-color:#0084ff;background:#0f1e2e}
+        .input-wrapper input::placeholder{color:#6b7280}
+        .button-row{display:flex;gap:12px}
+        .btn{flex:1;padding:16px;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px}
+        .btn-primary{background:#0084ff;color:#fff}
+        .btn-primary:hover:not(:disabled){background:#0073e6;transform:translateY(-1px)}
+        .btn-secondary{background:#2d3748;color:#fff}
+        .btn-secondary:hover:not(:disabled){background:#374151}
+        .btn:disabled{opacity:.5;cursor:not-allowed}
+        .call-screen{flex:1;display:none;position:relative;background:#000}
+        .call-screen.active{display:block}
+        .video-main{position:absolute;inset:0}
+        .video-container{width:100%;height:100%;position:relative;cursor:pointer}
+        video{width:100%;height:100%;object-fit:cover}
+        .video-label{position:absolute;top:16px;left:16px;background:rgba(0,0,0,.6);backdrop-filter:blur(10px);color:#fff;padding:8px 16px;border-radius:20px;font-size:14px;z-index:5}
+        .video-pip{position:absolute;top:20px;right:20px;width:240px;height:180px;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.5);border:2px solid #2d3748;z-index:10}
+        .controls-bar{position:absolute;bottom:120px;left:50%;transform:translateX(-50%);display:flex;gap:16px;z-index:20;background:rgba(0,0,0,.6);backdrop-filter:blur(10px);padding:16px 24px;border-radius:48px}
+        .control-btn{width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;background:rgba(255,255,255,.15);color:#fff;transition:.2s}
+        .control-btn:hover{background:rgba(255,255,255,.25);transform:scale(1.05)}
+        .control-btn.active{background:rgba(239,68,68,.9)}
+        .control-btn.end-call{background:#ef4444;width:64px;height:64px}
+        .control-btn.end-call:hover{background:#dc2626}
+        .settings-modal{position:absolute;bottom:200px;left:50%;transform:translateX(-50%);background:#1a2332;border-radius:16px;padding:24px;width:90%;max-width:400px;display:none;z-index:100}
+        .settings-modal.show{display:block}
+        .status-bar{position:absolute;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);color:#fff;padding:12px 24px;border-radius:24px;z-index:15;display:none}
+        .status-bar.show{display:block}
     </style>
 </head>
 <body>
-    <div class="app-container">
-        <div class="header">
-            <div class="logo">
-                <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                    <circle cx="14" cy="14" r="14" fill="currentColor"/>
-                    <path d="M8 14L12 18L20 10" stroke="white" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-                Video Chat
-            </div>
-            
-            <div class="search-area">
-                <input type="text" id="userSearchInput" placeholder="🔍 Wyszukaj użytkowników..." style="display: none;">
-                <div class="dropdown-content" id="searchResults"></div>
-            </div>
-        </div>
-        
-        <div class="main-content">
-            
-            <div class="setup-screen" id="authScreen" style="display: flex;">
-                <div class="setup-card">
-                    <h1 class="setup-title">Zaloguj się / Zarejestruj</h1>
-                    
-                    <div class="input-wrapper">
-                        <input type="text" id="usernameInput" placeholder="Nazwa użytkownika" autocomplete="username">
-                    </div>
-                    <div class="input-wrapper">
-                        <input type="password" id="passwordInput" placeholder="Hasło" autocomplete="current-password">
-                    </div>
-                    
-                    <div class="button-row">
-                        <button id="loginBtn" class="btn btn-primary">Zaloguj</button>
-                        <button id="registerBtn" class="btn btn-secondary">Zarejestruj</button>
-                    </div>
-                    <div class="settings-info" style="margin-top: 15px; color: #6b7280; text-align: center;">Twoje dane będą przechowywane w Google Sheets.</div>
-                </div>
-            </div>
-            
-            <div class="setup-screen" id="menuScreen">
-                <div class="sidebar">
-                    <div class="sidebar-title">Zaproszenia (Oczekujące)</div>
-                    <div id="invitationsList" style="margin-bottom: 20px;">Brak zaproszeń.</div>
-                    
-                    <div class="settings-divider"></div>
-
-                    <div class="sidebar-title">Znajomi</div>
-                    <div id="friendsList">Brak znajomych.</div>
-                    
-                    <div class="settings-divider"></div>
-                    <button class="btn btn-secondary" style="padding: 10px; font-size: 14px; margin-top: 10px;" onclick="loadFriendStatus()">Odśwież status</button>
-                </div>
-                
-                <div class="main-view">
-                    <div class="setup-card" style="max-width: 600px;">
-                        <h1 class="setup-title" id="welcomeUser">Witaj!</h1>
-                        <p class="settings-info" style="color: #9ca3af; margin-bottom: 24px;">Twój unikalny ID do połączeń (PeerID): <strong id="userPeerIdDisplay">Ładowanie...</strong></p>
-                        
-                        <div class="input-wrapper">
-                            <input type="text" id="targetPeerId" placeholder="Wpisz PeerID znajomego, aby zadzwonić..." autocomplete="off">
-                        </div>
-                        
-                        <div class="button-row">
-                            <button id="callPeerBtn" class="btn btn-primary">
-                                <span>📞</span> Zadzwoń
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
-            <div class="call-screen" id="callScreen">
-                <div class="video-main" id="videoMain">
-                    <div class="video-container" id="remoteContainer">
-                        <video id="remoteVideo" autoplay playsinline></video>
-                        <div class="video-label" id="remoteLabel">Rozmówca</div>
-                        <div class="camera-off-overlay" id="remoteCameraOff">
-                            <div class="camera-off-icon">📷</div>
-                            <div class="camera-off-text">Kamera wyłączona</div>
-                            <div class="camera-off-subtext">Rozmówca wyłączył kamerę</div>
-                            <button class="request-camera-btn" id="requestCameraBtn">
-                                Poproś o włączenie kamery
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="video-pip" id="videoPip">
-                    <div class="video-container" id="localContainer">
-                        <video id="localVideo" autoplay muted playsinline></video>
-                        <div class="video-label">Ty</div>
-                        <div class="camera-off-overlay" id="localCameraOff">
-                            <div class="camera-off-icon">📷</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="status-bar" id="statusBar"></div>
-                
-                <div class="camera-request-modal" id="cameraRequestModal">
-                    <div class="modal-title">📹 Prośba o kamerę</div>
-                    <div class="modal-text">Rozmówca prosi Cię o włączenie kamery. Czy chcesz włączyć kamerę?</div>
-                    <div class="modal-buttons">
-                        <button class="modal-btn modal-btn-primary" id="acceptCameraBtn">Włącz kamerę</button>
-                        <button class="modal-btn modal-btn-secondary" id="declineCameraBtn">Nie teraz</button>
-                    </div>
-                </div>
-                
-                <div class="controls-bar">
-                    <button class="control-btn" id="toggleMicBtn" title="Wycisz mikrofon">🎤</button>
-                    <button class="control-btn" id="toggleCamBtn" title="Wyłącz kamerę">📹</button>
-                    <button class="control-btn" id="switchCameraBtn" title="Zmień kamerę">🔄</button>
-                    <button class="control-btn settings" id="settingsBtn" title="Ustawienia">⚙️</button>
-                    <button class="control-btn end-call" id="endCallBtn" title="Zakończ">✖️</button>
-                </div>
-
-                <div class="settings-modal" id="settingsModal">
-                    <div class="settings-header">
-                        <div class="settings-title">⚙️ Ustawienia rozmowy</div>
-                        <button class="settings-close" id="settingsCloseBtn">×</button>
-                    </div>
-
-                    <div class="settings-group">
-                        <label class="settings-label">Jakość wideo</label>
-                        <select class="settings-select" id="qualitySelect">
-                            <option value="auto">Auto (zalecane)</option>
-                            <option value="1080p">1080p (Full HD)</option>
-                            <option value="720p">720p (HD)</option>
-                            <option value="480p">480p (SD)</option>
-                            <option value="360p">360p (Low)</option>
-                        </select>
-                        <div class="settings-info">Wyższa jakość = więcej danych</div>
-                    </div>
-
-                    <div class="settings-group">
-                        <label class="settings-label">Klatki na sekundę (FPS)</label>
-                        <select class="settings-select" id="fpsSelect">
-                            <option value="auto">Auto (zalecane)</option>
-                            <option value="60">60 FPS (Płynne)</option>
-                            <option value="30">30 FPS (Standard)</option>
-                            <option value="15">15 FPS (Oszczędne)</option>
-                        </select>
-                        <div class="settings-info">Więcej FPS = płynniejszy obraz</div>
-                    </div>
-
-                    <div class="settings-group">
-                        <label class="settings-label">Bitrate wideo</label>
-                        <select class="settings-select" id="bitrateSelect">
-                            <option value="auto">Auto (zalecane)</option>
-                            <option value="2500">2.5 Mbps (Wysoki)</option>
-                            <option value="1500">1.5 Mbps (Średni)</option>
-                            <option value="800">800 Kbps (Niski)</option>
-                        </select>
-                        <div class="settings-info">Wyższy bitrate = lepsza jakość</div>
-                    </div>
-
-                    <div class="settings-divider"></div>
-
-                    <div class="settings-group">
-                        <label class="settings-label">Informacje o połączeniu</label>
-                        <div style="background: #0a1929; padding: 12px; border-radius: 8px; font-size: 14px; color: #9ca3af;">
-                            <div id="connectionInfo">Łączenie...</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <iframe id="appsScriptIframe" src="https://script.google.com/macros/s/AKfycbwhuDOLBGBZHj8MrSh17Z4IXhi2bMFppcJwXQLRx_zwEITxk3P1T9smxatPDc1wN0c_yA/exec" style="display: none;"></iframe>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
-    <script>
-        // --- ZMIENNE STANU ---
-        let peer = null;
-        let currentCall = null;
-        let localStream = null;
-        let processedStream = null;
-        let audioContext = null;
-        let isMicEnabled = true;
-        let isCamEnabled = true;
-        let isLocalMain = false;
-        let dataConnection = null;
-        let lastCameraRequestTime = 0;
-        const CAMERA_REQUEST_COOLDOWN = 5 * 60 * 1000;
-
-        // Ustawienia jakości
-        let videoQuality = 'auto';
-        let videoFPS = 'auto';
-        let videoBitrate = 'auto';
-        let currentFacingMode = 'user'; // 'user' = przód, 'environment' = tył
-
-        // NOWE ZMIENNE STANU UŻYTKOWNIKA
-        let currentUserId = null;
-        let currentUserPeerId = null;
-        let friendsList = [];
-        let invitationsList = [];
-
-
-        // --- REFERENCJE DO ELEMENTÓW DOM ---
-        const roomIdInput = document.getElementById('roomId');
-        const setupScreen = document.getElementById('setupScreen');
-        const callScreen = document.getElementById('callScreen');
-        const statusBar = document.getElementById('statusBar');
-        const localVideo = document.getElementById('localVideo');
-        const remoteVideo = document.getElementById('remoteVideo');
-        const videoPip = document.getElementById('videoPip');
-        const videoMain = document.getElementById('videoMain');
-        const localContainer = document.getElementById('localContainer');
-        const remoteContainer = document.getElementById('remoteContainer');
-        const toggleMicBtn = document.getElementById('toggleMicBtn');
-        const toggleCamBtn = document.getElementById('toggleCamBtn');
-        const endCallBtn = document.getElementById('endCallBtn');
-        const localCameraOff = document.getElementById('localCameraOff');
-        const remoteCameraOff = document.getElementById('remoteCameraOff');
-        const requestCameraBtn = document.getElementById('requestCameraBtn');
-        const cameraRequestModal = document.getElementById('cameraRequestModal');
-        const acceptCameraBtn = document.getElementById('acceptCameraBtn');
-        const declineCameraBtn = document.getElementById('declineCameraBtn');
-        const settingsBtn = document.getElementById('settingsBtn');
-        const settingsModal = document.getElementById('settingsModal');
-        const settingsCloseBtn = document.getElementById('settingsCloseBtn');
-        const qualitySelect = document.getElementById('qualitySelect');
-        const fpsSelect = document.getElementById('fpsSelect');
-        const bitrateSelect = document.getElementById('bitrateSelect');
-        const connectionInfo = document.getElementById('connectionInfo');
-        const switchCameraBtn = document.getElementById('switchCameraBtn');
-        
-        // NOWE REFERENCJE
-        const usernameInput = document.getElementById('usernameInput');
-        const passwordInput = document.getElementById('passwordInput');
-        const loginBtn = document.getElementById('loginBtn');
-        const registerBtn = document.getElementById('registerBtn');
-        const authScreen = document.getElementById('authScreen');
-        const menuScreen = document.getElementById('menuScreen');
-        const welcomeUser = document.getElementById('welcomeUser');
-        const userPeerIdDisplay = document.getElementById('userPeerIdDisplay');
-        const targetPeerId = document.getElementById('targetPeerId');
-        const callPeerBtn = document.getElementById('callPeerBtn');
-        const userSearchInput = document.getElementById('userSearchInput');
-        const searchResults = document.getElementById('searchResults');
-        const friendsDisplay = document.getElementById('friendsList');
-        const invitationsDisplay = document.getElementById('invitationsList');
-
-
-        // --- FUNKCJE OBSŁUGI KOMUNIKACJI (APPS SCRIPT) ---
-
-        function handleScriptFailure(error) {
-            console.error("Apps Script Error:", error);
-            showStatus(`Błąd Apps Script: ${error.message || 'Nieznany błąd'}`, 'connecting');
-        }
-
-        function initAppsScript() {
-            // Używamy iframe, aby załadować Google Apps Script do tego samego pochodzenia.
-            // Bez tego google.script.run nie będzie działać.
-            const iframe = document.getElementById('appsScriptIframe');
-            iframe.onload = () => {
-                if (typeof google !== 'undefined' && google.script && google.script.run) {
-                    console.log("Apps Script załadowany pomyślnie.");
-                }
-            };
-        }
-
-
-        // --- LOGOWANIE/REJESTRACJA ---
-
-        loginBtn.addEventListener('click', () => {
-            const username = usernameInput.value.trim();
-            const password = passwordInput.value.trim();
-            
-            if (!username || !password) {
-                showStatus("Wprowadź nazwę i hasło.", 'connecting');
-                return;
-            }
-            showStatus('Logowanie...', 'connecting');
-            google.script.run.withSuccessHandler(handleLoginResponse)
-                            .withFailureHandler(handleScriptFailure)
-                            .authenticateUser(username, password);
-        });
-
-        registerBtn.addEventListener('click', () => {
-            const username = usernameInput.value.trim();
-            const password = passwordInput.value.trim();
-            
-            if (!username || !password) {
-                showStatus("Wprowadź nazwę i hasło.", 'connecting');
-                return;
-            }
-            showStatus('Rejestracja...', 'connecting');
-            google.script.run.withSuccessHandler(handleRegisterResponse)
-                            .withFailureHandler(handleScriptFailure)
-                            .registerUser(username, password);
-        });
-
-        function handleRegisterResponse(response) {
-            showStatus(response.message, response.success ? 'connected' : 'connecting');
-            if (response.success) {
-                usernameInput.value = '';
-                passwordInput.value = '';
-            }
-        }
-
-        function handleLoginResponse(response) {
-            if (response.success) {
-                currentUserId = response.user.id;
-                currentUserPeerId = response.user.peerId;
-                
-                welcomeUser.textContent = `Witaj, ${usernameInput.value}!`;
-                userPeerIdDisplay.textContent = currentUserPeerId;
-                
-                switchToMenuScreen();
-                userSearchInput.style.display = 'block'; // Pokaż lupkę w nagłówku
-                
-                // Inicjalizacja PeerJS z ID użytkownika
-                initializePeer(currentUserPeerId);
-                
-                // Pobieranie listy znajomych i zaproszeń
-                loadFriendStatus();
-
-            } else {
-                showStatus(response.message, 'connecting');
-            }
-        }
-
-        // --- WYSZUKIWANIE I ZNAJOMI ---
-        
-        userSearchInput.addEventListener('input', () => {
-            const query = userSearchInput.value.trim();
-            if (query.length > 2 && currentUserId) {
-                google.script.run.withSuccessHandler(renderSearchResults)
-                                .withFailureHandler(handleScriptFailure)
-                                .searchUsers(query, currentUserId);
-                searchResults.style.display = 'block';
-            } else {
-                searchResults.style.display = 'none';
-            }
-        });
-
-        document.addEventListener('click', (e) => {
-            // Ukryj wyniki wyszukiwania po kliknięciu poza polem
-            if (!userSearchInput.contains(e.target) && !searchResults.contains(e.target)) {
-                searchResults.style.display = 'none';
-            }
-        });
-
-        function renderSearchResults(users) {
-            searchResults.innerHTML = '';
-            if (users.length === 0) {
-                searchResults.innerHTML = '<div class="dropdown-item" style="justify-content: center; opacity: 0.7;">Brak wyników</div>';
-                return;
-            }
-
-            users.forEach(user => {
-                const item = document.createElement('div');
-                item.className = 'dropdown-item';
-                item.innerHTML = `
-                    <span>${user.username}</span>
-                    <button data-recipient-id="${user.id}" data-recipient-username="${user.username}">Dodaj</button>
-                `;
-                item.querySelector('button').addEventListener('click', (e) => {
-                    const id = e.target.dataset.recipientId;
-                    const username = e.target.dataset.recipientUsername;
-                    sendFriendRequestFrontend(id, username);
-                });
-                searchResults.appendChild(item);
-            });
-        }
-
-        function sendFriendRequestFrontend(recipientId, recipientUsername) {
-            if (!currentUserId) return;
-            
-            google.script.run.withSuccessHandler(response => {
-                showStatus(response.message, response.success ? 'connected' : 'connecting');
-                searchResults.style.display = 'none';
-                userSearchInput.value = '';
-            })
-            .withFailureHandler(handleScriptFailure)
-            .sendFriendRequest(currentUserId, recipientId);
-        }
-        
-        function acceptFriendRequestFrontend(rowId) {
-            google.script.run.withSuccessHandler(() => {
-                showStatus("Zaproszenie zaakceptowane! Odśwież listę.", 'connected');
-                loadFriendStatus();
-            })
-            .withFailureHandler(handleScriptFailure)
-            .acceptFriendRequest(rowId);
-        }
-
-
-        function loadFriendStatus() {
-            if (!currentUserId) {
-                console.warn('Nie można załadować statusu znajomych - użytkownik nie jest zalogowany.');
-                return;
-            }
-            showStatus('Ładowanie statusu znajomych...', 'connecting');
-            google.script.run.withSuccessHandler(renderFriendStatus)
-                            .withFailureHandler(handleScriptFailure)
-                            .getFriendStatus(currentUserId);
-        }
-
-        function renderFriendStatus(status) {
-            friendsList = status.friends;
-            invitationsList = status.invitations;
-            showStatus('Status załadowany.', 'connected');
-            
-            // Renderowanie zaproszeń
-            if (invitationsList.length > 0) {
-                invitationsDisplay.innerHTML = invitationsList.map(inv => `
-                    <div class="friend-item">
-                        <span>📨 ${inv.username}</span>
-                        <div>
-                            <button class="btn btn-primary" style="padding: 5px 10px;" data-row-id="${inv.row}">Akceptuj</button>
-                            </div>
-                    </div>
-                `).join('');
-
-                invitationsDisplay.querySelectorAll('.friend-item button').forEach(button => {
-                    button.addEventListener('click', (e) => {
-                        const rowId = e.target.dataset.rowId;
-                        acceptFriendRequestFrontend(rowId);
-                    });
-                });
-            } else {
-                invitationsDisplay.innerHTML = '<div style="color: #6b7280;">Brak oczekujących zaproszeń.</div>';
-            }
-            
-            // Renderowanie znajomych
-            if (friendsList.length > 0) {
-                friendsDisplay.innerHTML = friendsList.map(friend => `
-                    <div class="friend-item">
-                        <span>🟢 ${friend.username}</span>
-                        <button class="btn btn-primary" style="padding: 5px 10px;" data-peer-id="${friend.peerId}">📞 Zadzwoń</button>
-                    </div>
-                `).join('');
-
-                friendsDisplay.querySelectorAll('.friend-item button').forEach(button => {
-                    button.addEventListener('click', (e) => {
-                        const peerId = e.target.dataset.peerId;
-                        startCall(peerId);
-                    });
-                });
-            } else {
-                friendsDisplay.innerHTML = '<div style="color: #6b7280;">Brak zaakceptowanych znajomych.</div>';
-            }
-        }
-
-
-        // --- FUNKCJE WEBRTC I POŁĄCZEŃ --- (Zachowane i dostosowane)
-
-        function showStatus(message, type = 'connecting') {
-            statusBar.textContent = message;
-            statusBar.className = `status-bar show ${type}`;
-            setTimeout(() => {
-                if (type !== 'connected') {
-                    statusBar.classList.remove('show');
-                }
-            }, 3000);
-        }
-        
-        // Funkcja do uzyskania streamu (zachowana)
-        async function getMediaStream() {
-            try {
-                let videoConstraints = { facingMode: currentFacingMode };
-                
-                if (videoQuality !== 'auto') {
-                    const qualitySettings = {
-                        '1080p': { width: 1920, height: 1080 },
-                        '720p': { width: 1280, height: 720 },
-                        '480p': { width: 854, height: 480 },
-                        '360p': { width: 640, height: 360 }
-                    };
-                    videoConstraints = {
-                        ...videoConstraints,
-                        width: { ideal: qualitySettings[videoQuality].width },
-                        height: { ideal: qualitySettings[videoQuality].height }
-                    };
-                }
-
-                if (videoFPS !== 'auto') {
-                    videoConstraints.frameRate = { ideal: parseInt(videoFPS) };
-                }
-
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: videoConstraints,
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true
-                    }
-                });
-                
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const source = audioContext.createMediaStreamSource(stream);
-                const compressor = audioContext.createDynamicsCompressor();
-                compressor.threshold.value = -50;
-                compressor.knee.value = 40;
-                compressor.ratio.value = 12;
-                compressor.attack.value = 0;
-                compressor.release.value = 0.25;
-                const highPassFilter = audioContext.createBiquadFilter();
-                highPassFilter.type = 'highpass';
-                highPassFilter.frequency.value = 100;
-                const lowPassFilter = audioContext.createBiquadFilter();
-                lowPassFilter.type = 'lowpass';
-                lowPassFilter.frequency.value = 8000;
-                
-                source.connect(highPassFilter);
-                highPassFilter.connect(lowPassFilter);
-                lowPassFilter.connect(compressor);
-                
-                const destination = audioContext.createMediaStreamDestination();
-                compressor.connect(destination);
-                
-                const videoTrack = stream.getVideoTracks()[0];
-                const processedAudioTrack = destination.stream.getAudioTracks()[0];
-                
-                processedStream = new MediaStream([videoTrack, processedAudioTrack]);
-                localStream = stream; // Zapisujemy też oryginalny stream dla łatwiejszego zarządzania
-                
-                return processedStream;
-            } catch (err) {
-                showStatus('Brak dostępu do kamery/mikrofonu', 'connecting');
-                throw err;
-            }
-        }
-
-        // Funkcja tworzenia Peer (zachowana)
-        function createPeer(peerId = null) {
-            const config = {
-                host: '0.peerjs.com',
-                port: 443,
-                secure: true,
-                path: '/',
-                config: {
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' },
-                        { urls: 'stun:stun2.l.google.com:19302' },
-                        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-                        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-                        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
-                    ],
-                    sdpSemantics: 'unified-plan'
-                },
-                debug: 2
-            };
-
-            if (peerId) {
-                return new Peer(peerId, config);
-            }
-
-            return new Peer(config);
-        }
-
-        // Nowa inicjalizacja PeerJS (przy logowaniu)
-        async function initializePeer(peerId) {
-            if (peer) peer.destroy(); // Jeśli istnieje, zniszcz
-            peer = createPeer(peerId);
-
-            peer.on('open', (id) => {
-                showStatus(`Online. Twój ID: ${id}`, 'connected');
-                // Automatycznie odbieraj połączenia
-                peer.on('call', async (call) => {
-                    showStatus(`Przychodzące połączenie od ${call.peer}...`, 'connecting');
-                    try {
-                        // Sprawdź, czy stream już jest (z poprzedniej próby)
-                        if (!localStream) {
-                           await getMediaStream();
-                           localVideo.srcObject = processedStream;
-                        }
-                       
-                        currentCall = call;
-                        call.answer(processedStream);
-                        setupCallListeners(call);
-                        switchToCallScreen();
-                    } catch (e) {
-                        showStatus('Błąd: Brak dostępu do mediów. Odrzucono połączenie.', 'connecting');
-                        call.close();
-                    }
-                });
-                
-                // Odbieranie połączenia danych
-                peer.on('connection', (conn) => {
-                    setupDataConnection(conn);
-                });
-            });
-
-            peer.on('error', (err) => { console.error('Peer error:', err); });
-        }
-        
-        // Inicjacja połączenia wychodzącego
-        callPeerBtn.addEventListener('click', () => {
-            const peerToCall = targetPeerId.value.trim();
-            if (peerToCall) {
-                startCall(peerToCall);
-            } else {
-                showStatus('Wprowadź ID rozmówcy.', 'connecting');
-            }
-        });
-
-        async function startCall(peerId) {
-            if (!peer || peer.destroyed) {
-                showStatus('Błąd: Brak połączenia z serwerem PeerJS. Zaloguj się ponownie.', 'connecting');
-                return;
-            }
-            if (currentCall) {
-                showStatus('Już jesteś w trakcie rozmowy.', 'connecting');
-                return;
-            }
-
-            try {
-                showStatus(`Łączenie z ID: ${peerId}...`, 'connecting');
-                
-                // Uruchomienie mediów
-                await getMediaStream();
-                localVideo.srcObject = processedStream;
-                
-                // Połączenie danych (dla statusów kamery/mikrofonu)
-                const conn = peer.connect(peerId);
-                setupDataConnection(conn);
-
-                // Połączenie wideo
-                const call = peer.call(peerId, processedStream);
-                
-                if (!call) {
-                    showStatus('Nie znaleziono użytkownika lub błąd połączenia.', 'connecting');
-                    return;
-                }
-                
-                currentCall = call;
-                setupCallListeners(call);
-                switchToCallScreen();
-                
-            } catch (err) {
-                console.error(err);
-                showStatus('Błąd połączenia. Sprawdź kamerę/mikrofon.', 'connecting');
-            }
-        }
-        
-        function setupCallListeners(call) {
-            call.on('stream', (remoteStream) => {
-                remoteVideo.srcObject = remoteStream;
-                showStatus('Połączono', 'connected');
-                applyBitrateLimit(call);
-                setInterval(() => updateConnectionInfo(), 2000);
-            });
-
-            call.on('close', () => {
-                showStatus('Rozmowa zakończona', 'connecting');
-                endCall();
-            });
-            
-            call.on('error', (err) => {
-                console.error('Call error:', err);
-                showStatus('Błąd połączenia', 'connecting');
-                endCall();
-            });
-        }
-        
-        // Funkcja zakończenia rozmowy (dostosowana do nowego UI)
-        endCallBtn.addEventListener('click', () => {
-            showStatus('Rozłączanie...', 'connecting');
-            endCall();
-        });
-
-        function endCall() {
-            if (currentCall) currentCall.close();
-            if (dataConnection) dataConnection.close();
-            
-            // Zatrzymywanie streamów
-            if (localStream) localStream.getTracks().forEach(track => track.stop());
-            if (processedStream) processedStream.getTracks().forEach(track => track.stop());
-            if (audioContext) audioContext.close();
-            
-            localVideo.srcObject = null;
-            remoteVideo.srcObject = null;
-            
-            // Resetowanie stanu
-            currentCall = null;
-            localStream = null;
-            processedStream = null;
-            audioContext = null;
-            dataConnection = null;
-
-            // Resetowanie UI do stanu menu
-            isMicEnabled = true;
-            isCamEnabled = true;
-            toggleMicBtn.classList.remove('active');
-            toggleCamBtn.classList.remove('active');
-            toggleMicBtn.textContent = '🎤';
-            toggleCamBtn.textContent = '📹';
-            localCameraOff.classList.remove('show');
-            remoteCameraOff.classList.remove('show');
-            cameraRequestModal.classList.remove('show');
-            settingsModal.classList.remove('show');
-            targetPeerId.value = '';
-            
-            switchToMenuScreen(); 
-            loadFriendStatus(); 
-        }
-
-        // --- ZARZĄDZANIE EKRANAMI ---
-
-        function switchToMenuScreen() {
-            callScreen.classList.remove('active');
-            authScreen.style.display = 'none';
-            menuScreen.style.display = 'flex';
-        }
-
-        function switchToCallScreen() {
-            authScreen.style.display = 'none';
-            menuScreen.style.display = 'none';
-            callScreen.classList.add('active');
-            // Resetujemy ułożenie wideo na start
-            isLocalMain = false;
-            if (remoteContainer.parentElement !== videoMain) {
-                videoMain.appendChild(remoteContainer);
-                videoPip.appendChild(localContainer);
-            }
-        }
-        
-        // Reszta oryginalnych funkcji (swapVideos, toggle, settings, bitrate)
-        
-        localContainer.addEventListener('click', swapVideos);
-        remoteContainer.addEventListener('click', swapVideos);
-
-        function swapVideos() {
-            isLocalMain = !isLocalMain;
-            
-            if (isLocalMain) {
-                videoMain.innerHTML = '';
-                videoMain.appendChild(localContainer);
-                videoPip.innerHTML = '';
-                videoPip.appendChild(remoteContainer);
-            } else {
-                videoMain.innerHTML = '';
-                videoMain.appendChild(remoteContainer);
-                videoPip.innerHTML = '';
-                videoPip.appendChild(localContainer);
-            }
-        }
-        
-        function sendDataMessage(type, data) {
-            if (dataConnection && dataConnection.open) {
-                dataConnection.send({ type, data });
-            }
-        }
-
-        function updateCameraStatus() {
-            if (isCamEnabled) {
-                localCameraOff.classList.remove('show');
-            } else {
-                localCameraOff.classList.add('show');
-            }
-            sendDataMessage('camera-status', { enabled: isCamEnabled });
-        }
-
-        toggleMicBtn.addEventListener('click', () => {
-            isMicEnabled = !isMicEnabled;
-            if (processedStream) {
-                processedStream.getAudioTracks().forEach(track => {
-                    track.enabled = isMicEnabled;
-                });
-            }
-            toggleMicBtn.classList.toggle('active', !isMicEnabled);
-            toggleMicBtn.textContent = isMicEnabled ? '🎤' : '🔇';
-        });
-
-        toggleCamBtn.addEventListener('click', () => {
-            isCamEnabled = !isCamEnabled;
-            if (processedStream) {
-                processedStream.getVideoTracks().forEach(track => {
-                    track.enabled = isCamEnabled;
-                });
-            }
-            toggleCamBtn.classList.toggle('active', !isCamEnabled);
-            toggleCamBtn.textContent = isCamEnabled ? '📹' : '📷';
-            updateCameraStatus();
-        });
-
-        requestCameraBtn.addEventListener('click', () => {
-            const now = Date.now();
-            if (now - lastCameraRequestTime < CAMERA_REQUEST_COOLDOWN) {
-                const remainingTime = Math.ceil((CAMERA_REQUEST_COOLDOWN - (now - lastCameraRequestTime)) / 1000 / 60);
-                showStatus(`Poczekaj jeszcze ${remainingTime} min na prośbę.`, 'connecting');
-                return;
-            }
-            lastCameraRequestTime = now;
-            sendDataMessage('camera-request', {});
-            showStatus('Wysłano prośbę o kamerę', 'connected');
-            requestCameraBtn.disabled = true;
-            setTimeout(() => { requestCameraBtn.disabled = false; }, CAMERA_REQUEST_COOLDOWN);
-        });
-
-        acceptCameraBtn.addEventListener('click', async () => {
-            cameraRequestModal.classList.remove('show');
-            if (!isCamEnabled) {
-                // Konieczne jest ponowne uruchomienie streamu, aby upewnić się, że kamera działa po prośbie
-                if (currentCall) {
-                    showStatus('Włączanie kamery...', 'connecting');
-                    await getMediaStream();
-                    localVideo.srcObject = processedStream;
-                    const videoTrack = processedStream.getVideoTracks()[0];
-                    const sender = currentCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-                    if (sender) await sender.replaceTrack(videoTrack);
-
-                    isCamEnabled = true;
-                    toggleCamBtn.classList.remove('active');
-                    toggleCamBtn.textContent = '📹';
-                    updateCameraStatus();
-                    showStatus('Kamera włączona.', 'connected');
-                }
-            }
-        });
-
-        declineCameraBtn.addEventListener('click', () => {
-            cameraRequestModal.classList.remove('show');
-        });
-
-        settingsBtn.addEventListener('click', () => { settingsModal.classList.toggle('show'); });
-        settingsCloseBtn.addEventListener('click', () => { settingsModal.classList.remove('show'); });
-
-        qualitySelect.addEventListener('change', async (e) => {
-            videoQuality = e.target.value;
-            if (currentCall) restartMediaOnSettingChange();
-        });
-        fpsSelect.addEventListener('change', async (e) => {
-            videoFPS = e.target.value;
-            if (currentCall) restartMediaOnSettingChange();
-        });
-        bitrateSelect.addEventListener('change', (e) => {
-            videoBitrate = e.target.value;
-            if (currentCall) {
-                applyBitrateLimit(currentCall);
-                showStatus('Bitrate zaktualizowany', 'connected');
-            }
-        });
-
-        async function restartMediaOnSettingChange() {
-            showStatus('Restartowanie kamery...', 'connecting');
-            
-            if (localStream) localStream.getTracks().forEach(track => track.stop());
-            if (processedStream) processedStream.getTracks().forEach(track => track.stop());
-            if (audioContext) audioContext.close();
-
-            const newStream = await getMediaStream();
-            localVideo.srcObject = newStream;
-
-            if (currentCall) {
-                const videoTrack = processedStream.getVideoTracks()[0];
-                const audioTrack = processedStream.getAudioTracks()[0];
-                
-                const videoSender = currentCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-                const audioSender = currentCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'audio');
-                
-                if (videoSender) await videoSender.replaceTrack(videoTrack);
-                if (audioSender) await audioSender.replaceTrack(audioTrack);
-            }
-            showStatus('Ustawienia wideo zaktualizowane', 'connected');
-        }
-
-        switchCameraBtn.addEventListener('click', async () => {
-            if (!localStream) return;
-            try {
-                showStatus('Zmienianie kamery...', 'connecting');
-                currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-                await restartMediaOnSettingChange();
-            } catch (err) {
-                console.error('Błąd zmiany kamery:', err);
-                showStatus('Nie udało się zmienić kamery', 'connecting');
-                currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user'; // Wracamy
-            }
-        });
-
-        function setupDataConnection(conn) {
-            dataConnection = conn;
-            
-            conn.on('data', (data) => {
-                if (data.type === 'camera-status') {
-                    if (data.data.enabled) {
-                        remoteCameraOff.classList.remove('show');
-                    } else {
-                        remoteCameraOff.classList.add('show');
-                    }
-                } else if (data.type === 'camera-request') {
-                    cameraRequestModal.classList.add('show');
-                }
-            });
-
-            conn.on('open', () => {
-                updateCameraStatus();
-                updateConnectionInfo();
-            });
-        }
-
-        function updateConnectionInfo() {
-            if (currentCall && currentCall.peerConnection) {
-                currentCall.peerConnection.getStats().then(stats => {
-                    let info = [];
-                    stats.forEach(stat => {
-                        if (stat.type === 'candidate-pair' && stat.state === 'succeeded') {
-                            info.push(`Typ: ${stat.currentRoundTripTime ? 'Połączenie aktywne' : 'Łączenie...'}`);
-                            if (stat.currentRoundTripTime) {
-                                info.push(`Ping: ${Math.round(stat.currentRoundTripTime * 1000)}ms`);
-                            }
-                        }
-                    });
-                    if (info.length > 0) {
-                        connectionInfo.innerHTML = info.join('<br>');
-                    } else {
-                        connectionInfo.innerHTML = "Łączenie...";
-                    }
-                });
-            }
-        }
-
-        function applyBitrateLimit(call) {
-            if (videoBitrate === 'auto' || !call || !call.peerConnection) return;
-            const sender = call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-            if (!sender) return;
-            const parameters = sender.getParameters();
-            if (!parameters.encodings) parameters.encodings = [{}];
-            parameters.encodings[0].maxBitrate = parseInt(videoBitrate) * 1000;
-            sender.setParameters(parameters).catch(err => {
-                console.error('Błąd ustawiania bitrate:', err);
-            });
-        }
-        
-        // --- INICJALIZACJA ---
-        
-        window.onload = () => {
-            initAppsScript();
-            // Startujemy na ekranie autentykacji
-            authScreen.style.display = 'flex';
-            menuScreen.style.display = 'none';
-        }
-    </script>
+<div class="app-container">
+<div class="header"><div class="logo">Video Chat</div></div>
+<div class="main-content">
+<div class="setup-screen" id="setupScreen">
+<div class="setup-card">
+<h1 class="setup-title">Rozpocznij rozmowę</h1>
+<div class="input-wrapper"><input id="roomId" placeholder="Wpisz ID pokoju"></div>
+<div class="button-row">
+<button id="startBtn" class="btn btn-primary">Utwórz</button>
+<button id="joinBtn" class="btn btn-secondary">Dołącz</button>
+</div>
+</div>
+</div>
+
+<div class="call-screen" id="callScreen">
+<div class="video-main" id="videoMain">
+<div class="video-container" id="remoteContainer">
+<video id="remoteVideo" autoplay playsinline></video>
+</div>
+</div>
+<div class="video-pip">
+<div class="video-container" id="localContainer">
+<video id="localVideo" autoplay muted playsinline></video>
+</div>
+</div>
+<div class="status-bar" id="statusBar"></div>
+<div class="controls-bar">
+<button class="control-btn" id="toggleMicBtn">🎤</button>
+<button class="control-btn" id="toggleCamBtn">📹</button>
+<button class="control-btn end-call" id="endCallBtn">✖️</button>
+</div>
+</div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+<script>
+let peer=null,currentCall=null;
+let rawStream=null,processedStream=null;
+let audioContext=null;
+let statsInterval=null;
+
+const localVideo=document.getElementById('localVideo');
+const remoteVideo=document.getElementById('remoteVideo');
+const startBtn=document.getElementById('startBtn');
+const joinBtn=document.getElementById('joinBtn');
+const roomIdInput=document.getElementById('roomId');
+const setupScreen=document.getElementById('setupScreen');
+const callScreen=document.getElementById('callScreen');
+const statusBar=document.getElementById('statusBar');
+const toggleMicBtn=document.getElementById('toggleMicBtn');
+const toggleCamBtn=document.getElementById('toggleCamBtn');
+const endCallBtn=document.getElementById('endCallBtn');
+
+function showStatus(t){statusBar.textContent=t;statusBar.classList.add('show')}
+
+async function getMedia(){
+rawStream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+audioContext=new (window.AudioContext||window.webkitAudioContext)();
+await audioContext.resume();
+const src=audioContext.createMediaStreamSource(rawStream);
+const dest=audioContext.createMediaStreamDestination();
+src.connect(dest);
+processedStream=new MediaStream([rawStream.getVideoTracks()[0],dest.stream.getAudioTracks()[0]]);
+return {rawStream,processedStream};
+}
+
+function createPeer(id){return new Peer(id,{host:'0.peerjs.com',secure:true,port:443})}
+
+startBtn.onclick=async()=>{
+const id=roomIdInput.value.trim();if(!id)return;
+showStatus('Kamera...');
+const s=await getMedia();
+localVideo.srcObject=s.rawStream;
+setupScreen.style.display='none';callScreen.classList.add('active');
+peer=createPeer(id);
+peer.on('call',call=>{
+currentCall=call;
+call.answer(s.processedStream);
+call.on('stream',r=>{
+remoteVideo.srcObject=r;
+statsInterval=setInterval(()=>{},2000);
+});
+});
+};
+
+joinBtn.onclick=async()=>{
+const id=roomIdInput.value.trim();if(!id)return;
+showStatus('Kamera...');
+const s=await getMedia();
+localVideo.srcObject=s.rawStream;
+setupScreen.style.display='none';callScreen.classList.add('active');
+peer=createPeer();
+peer.on('open',()=>{
+const call=peer.call(id,s.processedStream);
+currentCall=call;
+call.on('stream',r=>{
+remoteVideo.srcObject=r;
+statsInterval=setInterval(()=>{},2000);
+});
+});
+};
+
+toggleMicBtn.onclick=()=>{
+rawStream?.getAudioTracks().forEach(t=>t.enabled=!t.enabled);
+processedStream?.getAudioTracks().forEach(t=>t.enabled=!t.enabled);
+};
+
+toggleCamBtn.onclick=()=>{
+rawStream?.getVideoTracks().forEach(t=>t.enabled=!t.enabled);
+processedStream?.getVideoTracks().forEach(t=>t.enabled=!t.enabled);
+};
+
+endCallBtn.onclick=()=>{
+currentCall?.close();
+peer?.destroy();
+rawStream?.getTracks().forEach(t=>t.stop());
+processedStream?.getTracks().forEach(t=>t.stop());
+audioContext?.close();
+if(statsInterval){clearInterval(statsInterval);statsInterval=null}
+location.reload();
+};
+</script>
 </body>
 </html>
