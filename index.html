@@ -1,171 +1,444 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Chat</title>
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a1929;height:100vh;overflow:hidden}
-        .app-container{height:100vh;display:flex;flex-direction:column}
-        .header{background:#1a2332;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #2d3748}
-        .logo{font-size:24px;font-weight:700;color:#0084ff;display:flex;align-items:center;gap:8px}
-        .main-content{flex:1;display:flex;flex-direction:column;overflow:hidden}
-        .setup-screen{flex:1;display:flex;align-items:center;justify-content:center;padding:20px}
-        .setup-card{background:#1a2332;border-radius:16px;padding:40px;max-width:480px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.4)}
-        .setup-title{color:#fff;font-size:28px;font-weight:600;margin-bottom:32px;text-align:center}
-        .input-wrapper{margin-bottom:24px}
-        .input-wrapper input{width:100%;padding:16px;background:#0a1929;border:2px solid #2d3748;border-radius:12px;font-size:16px;color:#fff;transition:.2s}
-        .input-wrapper input:focus{outline:none;border-color:#0084ff;background:#0f1e2e}
-        .input-wrapper input::placeholder{color:#6b7280}
-        .button-row{display:flex;gap:12px}
-        .btn{flex:1;padding:16px;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px}
-        .btn-primary{background:#0084ff;color:#fff}
-        .btn-primary:hover:not(:disabled){background:#0073e6;transform:translateY(-1px)}
-        .btn-secondary{background:#2d3748;color:#fff}
-        .btn-secondary:hover:not(:disabled){background:#374151}
-        .btn:disabled{opacity:.5;cursor:not-allowed}
-        .call-screen{flex:1;display:none;position:relative;background:#000}
-        .call-screen.active{display:block}
-        .video-main{position:absolute;inset:0}
-        .video-container{width:100%;height:100%;position:relative;cursor:pointer}
-        video{width:100%;height:100%;object-fit:cover}
-        .video-label{position:absolute;top:16px;left:16px;background:rgba(0,0,0,.6);backdrop-filter:blur(10px);color:#fff;padding:8px 16px;border-radius:20px;font-size:14px;z-index:5}
-        .video-pip{position:absolute;top:20px;right:20px;width:240px;height:180px;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.5);border:2px solid #2d3748;z-index:10}
-        .controls-bar{position:absolute;bottom:120px;left:50%;transform:translateX(-50%);display:flex;gap:16px;z-index:20;background:rgba(0,0,0,.6);backdrop-filter:blur(10px);padding:16px 24px;border-radius:48px}
-        .control-btn{width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;background:rgba(255,255,255,.15);color:#fff;transition:.2s}
-        .control-btn:hover{background:rgba(255,255,255,.25);transform:scale(1.05)}
-        .control-btn.active{background:rgba(239,68,68,.9)}
-        .control-btn.end-call{background:#ef4444;width:64px;height:64px}
-        .control-btn.end-call:hover{background:#dc2626}
-        .settings-modal{position:absolute;bottom:200px;left:50%;transform:translateX(-50%);background:#1a2332;border-radius:16px;padding:24px;width:90%;max-width:400px;display:none;z-index:100}
-        .settings-modal.show{display:block}
-        .status-bar{position:absolute;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);color:#fff;padding:12px 24px;border-radius:24px;z-index:15;display:none}
-        .status-bar.show{display:block}
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebRTC Video Chat</title>
+
+<style>
+/* =========================
+   RESET / BASE
+========================= */
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+background:#0a1929;
+color:#fff;
+overflow:hidden
+}
+
+/* =========================
+   LAYOUT
+========================= */
+.app{height:100%;display:flex;flex-direction:column}
+.header{
+height:64px;
+background:#1a2332;
+display:flex;
+align-items:center;
+padding:0 24px;
+border-bottom:1px solid #2d3748
+}
+.logo{
+display:flex;
+align-items:center;
+gap:10px;
+font-weight:700;
+font-size:22px;
+color:#0084ff
+}
+
+.main{flex:1;position:relative}
+
+/* =========================
+   SETUP SCREEN
+========================= */
+.setup{
+position:absolute;
+inset:0;
+display:flex;
+align-items:center;
+justify-content:center
+}
+.setup-card{
+background:#1a2332;
+padding:40px;
+border-radius:18px;
+width:100%;
+max-width:480px;
+box-shadow:0 10px 40px rgba(0,0,0,.5)
+}
+.setup-title{
+text-align:center;
+font-size:28px;
+margin-bottom:32px
+}
+.input{
+width:100%;
+padding:16px;
+border-radius:12px;
+border:2px solid #2d3748;
+background:#0a1929;
+color:#fff;
+font-size:16px
+}
+.input:focus{outline:none;border-color:#0084ff}
+.buttons{
+margin-top:24px;
+display:flex;
+gap:12px
+}
+.btn{
+flex:1;
+padding:16px;
+border:none;
+border-radius:12px;
+font-size:16px;
+font-weight:600;
+cursor:pointer
+}
+.btn.primary{background:#0084ff;color:#fff}
+.btn.secondary{background:#2d3748;color:#fff}
+.btn.primary:hover{background:#0073e6}
+.btn.secondary:hover{background:#374151}
+
+/* =========================
+   CALL SCREEN
+========================= */
+.call{position:absolute;inset:0;display:none;background:#000}
+.call.active{display:block}
+.video-main{position:absolute;inset:0}
+.video-box{position:relative;width:100%;height:100%;background:#000}
+video{width:100%;height:100%;object-fit:cover}
+
+.label{
+position:absolute;
+top:16px;
+left:16px;
+background:rgba(0,0,0,.6);
+padding:6px 14px;
+border-radius:20px;
+font-size:14px
+}
+
+.pip{
+position:absolute;
+top:16px;
+right:16px;
+width:220px;
+height:160px;
+border-radius:12px;
+overflow:hidden;
+border:2px solid #2d3748;
+z-index:5;
+cursor:pointer
+}
+
+/* =========================
+   CONTROLS
+========================= */
+.controls{
+position:absolute;
+bottom:90px;
+left:50%;
+transform:translateX(-50%);
+display:flex;
+gap:16px;
+background:rgba(0,0,0,.6);
+padding:14px 22px;
+border-radius:40px;
+backdrop-filter:blur(10px)
+}
+.ctrl{
+width:56px;
+height:56px;
+border-radius:50%;
+border:none;
+font-size:22px;
+cursor:pointer;
+background:rgba(255,255,255,.15);
+color:#fff
+}
+.ctrl:hover{background:rgba(255,255,255,.25)}
+.ctrl.active{background:#ef4444}
+.ctrl.end{background:#ef4444;width:64px;height:64px}
+
+/* =========================
+   STATUS
+========================= */
+.status{
+position:absolute;
+top:20px;
+left:50%;
+transform:translateX(-50%);
+background:rgba(0,0,0,.7);
+padding:10px 22px;
+border-radius:24px;
+font-size:14px;
+display:none;
+z-index:10
+}
+.status.show{display:block}
+.status.ok{background:rgba(34,197,94,.9)}
+.status.warn{background:rgba(251,191,36,.9);color:#000}
+
+/* =========================
+   CAMERA OFF
+========================= */
+.cam-off{
+position:absolute;
+inset:0;
+display:none;
+align-items:center;
+justify-content:center;
+flex-direction:column;
+background:#111;
+z-index:3
+}
+.cam-off.show{display:flex}
+.cam-off span{font-size:64px;margin-bottom:10px;opacity:.6}
+
+/* =========================
+   SETTINGS
+========================= */
+.settings{
+position:absolute;
+bottom:180px;
+left:50%;
+transform:translateX(-50%);
+width:90%;
+max-width:420px;
+background:#1a2332;
+border-radius:16px;
+padding:24px;
+display:none;
+z-index:20
+}
+.settings.show{display:block}
+.settings h3{margin-bottom:20px}
+.group{margin-bottom:18px}
+.group label{font-size:14px;color:#9ca3af}
+select{
+width:100%;
+margin-top:6px;
+padding:12px;
+border-radius:8px;
+background:#0a1929;
+border:2px solid #2d3748;
+color:#fff
+}
+</style>
 </head>
+
 <body>
-<div class="app-container">
-<div class="header"><div class="logo">Video Chat</div></div>
-<div class="main-content">
-<div class="setup-screen" id="setupScreen">
+<div class="app">
+
+<div class="header">
+<div class="logo">🎥 WebRTC Chat</div>
+</div>
+
+<div class="main">
+
+<div class="setup" id="setup">
 <div class="setup-card">
-<h1 class="setup-title">Rozpocznij rozmowę</h1>
-<div class="input-wrapper"><input id="roomId" placeholder="Wpisz ID pokoju"></div>
-<div class="button-row">
-<button id="startBtn" class="btn btn-primary">Utwórz</button>
-<button id="joinBtn" class="btn btn-secondary">Dołącz</button>
+<div class="setup-title">Połącz się</div>
+<input id="roomInput" class="input" placeholder="ID pokoju">
+<div class="buttons">
+<button id="createBtn" class="btn primary">Utwórz</button>
+<button id="joinBtn" class="btn secondary">Dołącz</button>
 </div>
 </div>
 </div>
 
-<div class="call-screen" id="callScreen">
+<div class="call" id="call">
 <div class="video-main" id="videoMain">
-<div class="video-container" id="remoteContainer">
+<div class="video-box" id="remoteBox">
 <video id="remoteVideo" autoplay playsinline></video>
+<div class="label">Rozmówca</div>
+<div class="cam-off" id="remoteOff">
+<span>📷</span>
+Kamera wyłączona
 </div>
 </div>
-<div class="video-pip">
-<div class="video-container" id="localContainer">
+</div>
+
+<div class="pip" id="pip">
+<div class="video-box" id="localBox">
 <video id="localVideo" autoplay muted playsinline></video>
+<div class="label">Ty</div>
+<div class="cam-off" id="localOff"><span>📷</span></div>
 </div>
 </div>
-<div class="status-bar" id="statusBar"></div>
-<div class="controls-bar">
-<button class="control-btn" id="toggleMicBtn">🎤</button>
-<button class="control-btn" id="toggleCamBtn">📹</button>
-<button class="control-btn end-call" id="endCallBtn">✖️</button>
+
+<div class="status" id="status"></div>
+
+<div class="controls">
+<button id="micBtn" class="ctrl">🎤</button>
+<button id="camBtn" class="ctrl">📹</button>
+<button id="swapBtn" class="ctrl">🔄</button>
+<button id="settingsBtn" class="ctrl">⚙️</button>
+<button id="endBtn" class="ctrl end">✖</button>
+</div>
+
+<div class="settings" id="settings">
+<h3>Ustawienia</h3>
+<div class="group">
+<label>Jakość wideo</label>
+<select id="quality">
+<option value="auto">Auto</option>
+<option value="1080p">1080p</option>
+<option value="720p">720p</option>
+<option value="480p">480p</option>
+</select>
+</div>
+<div class="group">
+<label>FPS</label>
+<select id="fps">
+<option value="auto">Auto</option>
+<option value="60">60</option>
+<option value="30">30</option>
+<option value="15">15</option>
+</select>
+</div>
+<div class="group">
+<label>Bitrate</label>
+<select id="bitrate">
+<option value="auto">Auto</option>
+<option value="2500">2.5 Mbps</option>
+<option value="1500">1.5 Mbps</option>
+<option value="800">800 Kbps</option>
+</select>
 </div>
 </div>
+
 </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
 <script>
-let peer=null,currentCall=null;
+let peer=null,call=null,dataConn=null;
 let rawStream=null,processedStream=null;
-let audioContext=null;
-let statsInterval=null;
+let audioCtx=null;
+let mic=true,cam=true,localMain=false;
+let statsTimer=null;
 
-const localVideo=document.getElementById('localVideo');
-const remoteVideo=document.getElementById('remoteVideo');
-const startBtn=document.getElementById('startBtn');
-const joinBtn=document.getElementById('joinBtn');
-const roomIdInput=document.getElementById('roomId');
-const setupScreen=document.getElementById('setupScreen');
-const callScreen=document.getElementById('callScreen');
-const statusBar=document.getElementById('statusBar');
-const toggleMicBtn=document.getElementById('toggleMicBtn');
-const toggleCamBtn=document.getElementById('toggleCamBtn');
-const endCallBtn=document.getElementById('endCallBtn');
+const setup=document.getElementById("setup");
+const callUI=document.getElementById("call");
+const status=document.getElementById("status");
+const roomInput=document.getElementById("roomInput");
+const localVideo=document.getElementById("localVideo");
+const remoteVideo=document.getElementById("remoteVideo");
+const localOff=document.getElementById("localOff");
+const remoteOff=document.getElementById("remoteOff");
+const videoMain=document.getElementById("videoMain");
+const pip=document.getElementById("pip");
+const settings=document.getElementById("settings");
 
-function showStatus(t){statusBar.textContent=t;statusBar.classList.add('show')}
-
-async function getMedia(){
-rawStream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
-audioContext=new (window.AudioContext||window.webkitAudioContext)();
-await audioContext.resume();
-const src=audioContext.createMediaStreamSource(rawStream);
-const dest=audioContext.createMediaStreamDestination();
-src.connect(dest);
-processedStream=new MediaStream([rawStream.getVideoTracks()[0],dest.stream.getAudioTracks()[0]]);
-return {rawStream,processedStream};
+function showStatus(msg,type){
+status.textContent=msg;
+status.className="status show "+(type||"");
+setTimeout(()=>status.classList.remove("show"),3000);
 }
 
-function createPeer(id){return new Peer(id,{host:'0.peerjs.com',secure:true,port:443})}
+async function getStream(){
+const constraints={video:true,audio:{echoCancellation:true,noiseSuppression:true}};
+rawStream=await navigator.mediaDevices.getUserMedia(constraints);
+audioCtx=new AudioContext();
+await audioCtx.resume();
+const src=audioCtx.createMediaStreamSource(rawStream);
+const comp=audioCtx.createDynamicsCompressor();
+src.connect(comp);
+const dest=audioCtx.createMediaStreamDestination();
+comp.connect(dest);
+processedStream=new MediaStream([
+rawStream.getVideoTracks()[0],
+dest.stream.getAudioTracks()[0]
+]);
+return rawStream;
+}
 
-startBtn.onclick=async()=>{
-const id=roomIdInput.value.trim();if(!id)return;
-showStatus('Kamera...');
-const s=await getMedia();
-localVideo.srcObject=s.rawStream;
-setupScreen.style.display='none';callScreen.classList.add('active');
-peer=createPeer(id);
-peer.on('call',call=>{
-currentCall=call;
-call.answer(s.processedStream);
-call.on('stream',r=>{
-remoteVideo.srcObject=r;
-statsInterval=setInterval(()=>{},2000);
+function createPeer(id){
+return new Peer(id,{
+host:"0.peerjs.com",
+port:443,
+secure:true,
+config:{
+iceServers:[
+{urls:"stun:stun.l.google.com:19302"},
+{urls:"turn:openrelay.metered.ca:443",username:"openrelayproject",credential:"openrelayproject"}
+]
+}
+});
+}
+
+function swap(){
+localMain=!localMain;
+videoMain.innerHTML="";
+pip.innerHTML="";
+if(localMain){
+videoMain.appendChild(localBox);
+pip.appendChild(remoteBox);
+}else{
+videoMain.appendChild(remoteBox);
+pip.appendChild(localBox);
+}
+}
+
+document.getElementById("swapBtn").onclick=swap;
+
+document.getElementById("micBtn").onclick=()=>{
+mic=!mic;
+rawStream.getAudioTracks().forEach(t=>t.enabled=mic);
+processedStream.getAudioTracks().forEach(t=>t.enabled=mic);
+};
+
+document.getElementById("camBtn").onclick=()=>{
+cam=!cam;
+rawStream.getVideoTracks().forEach(t=>t.enabled=cam);
+processedStream.getVideoTracks().forEach(t=>t.enabled=cam);
+localOff.classList.toggle("show",!cam);
+if(dataConn)dataConn.send({type:"cam",on:cam});
+};
+
+document.getElementById("settingsBtn").onclick=()=>{
+settings.classList.toggle("show");
+};
+
+document.getElementById("endBtn").onclick=endCall;
+
+function endCall(){
+if(call)call.close();
+if(peer)peer.destroy();
+if(rawStream)rawStream.getTracks().forEach(t=>t.stop());
+if(audioCtx)audioCtx.close();
+clearInterval(statsTimer);
+setup.style.display="flex";
+callUI.classList.remove("active");
+}
+
+document.getElementById("createBtn").onclick=async()=>{
+if(!roomInput.value)return;
+await getStream();
+localVideo.srcObject=rawStream;
+setup.style.display="none";
+callUI.classList.add("active");
+peer=createPeer(roomInput.value);
+peer.on("call",c=>{
+call=c;
+c.answer(processedStream);
+c.on("stream",s=>remoteVideo.srcObject=s);
+});
+peer.on("connection",c=>{
+dataConn=c;
+c.on("data",d=>{
+if(d.type==="cam")remoteOff.classList.toggle("show",!d.on);
 });
 });
 };
 
-joinBtn.onclick=async()=>{
-const id=roomIdInput.value.trim();if(!id)return;
-showStatus('Kamera...');
-const s=await getMedia();
-localVideo.srcObject=s.rawStream;
-setupScreen.style.display='none';callScreen.classList.add('active');
+document.getElementById("joinBtn").onclick=async()=>{
+if(!roomInput.value)return;
+await getStream();
+localVideo.srcObject=rawStream;
+setup.style.display="none";
+callUI.classList.add("active");
 peer=createPeer();
-peer.on('open',()=>{
-const call=peer.call(id,s.processedStream);
-currentCall=call;
-call.on('stream',r=>{
-remoteVideo.srcObject=r;
-statsInterval=setInterval(()=>{},2000);
+peer.on("open",()=>{
+dataConn=peer.connect(roomInput.value);
+call=peer.call(roomInput.value,processedStream);
+call.on("stream",s=>remoteVideo.srcObject=s);
 });
-});
-};
-
-toggleMicBtn.onclick=()=>{
-rawStream?.getAudioTracks().forEach(t=>t.enabled=!t.enabled);
-processedStream?.getAudioTracks().forEach(t=>t.enabled=!t.enabled);
-};
-
-toggleCamBtn.onclick=()=>{
-rawStream?.getVideoTracks().forEach(t=>t.enabled=!t.enabled);
-processedStream?.getVideoTracks().forEach(t=>t.enabled=!t.enabled);
-};
-
-endCallBtn.onclick=()=>{
-currentCall?.close();
-peer?.destroy();
-rawStream?.getTracks().forEach(t=>t.stop());
-processedStream?.getTracks().forEach(t=>t.stop());
-audioContext?.close();
-if(statsInterval){clearInterval(statsInterval);statsInterval=null}
-location.reload();
 };
 </script>
 </body>
